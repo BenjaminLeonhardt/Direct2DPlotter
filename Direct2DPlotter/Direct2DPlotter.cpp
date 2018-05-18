@@ -533,7 +533,11 @@ void plotter_thread() {
 		if (vergroesserung > 20) {
 			if (counter == 0) {
 				lockSyntaxbaum.lock();
-				//punkte_berechnen();
+				FunktionSyntaxbaum baum;
+				rechnerLibrary.setFunctionBuffer(functionBuffer);
+				rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
+				rechnerLibrary.setSyntaxbaum(baum);
+				punkte_berechnen();
 				lockSyntaxbaum.unlock();
 				counter++;
 			}
@@ -541,7 +545,11 @@ void plotter_thread() {
 		if (vergroesserung < 20) {
 			if (counter == 1) {
 				lockSyntaxbaum.lock();
-				//punkte_berechnen();
+				FunktionSyntaxbaum baum;
+				rechnerLibrary.setFunctionBuffer(functionBuffer);
+				rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
+				rechnerLibrary.setSyntaxbaum(baum);
+				punkte_berechnen();
 				lockSyntaxbaum.unlock();
 				counter--;
 			}
@@ -1055,11 +1063,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 			POINT pt = { LOWORD(lParam), HIWORD(lParam) };
 			if (DragDetect(hWnd, pt)) {
 				if (toggel == 1) {
+
 					int deltaX = 0;
 					int deltaY = 0;
 					deltaX = LOWORD(lParam) - posXAlt;
 					deltaY = HIWORD(lParam) - posYAlt;
-					graphics->moveCenterPosition((deltaX), (deltaY));
+					graphics->moveCenterPosition((deltaX*2), (deltaY*2));
 					toggel = 0;
 				}
 				else if (toggel == 0) {
