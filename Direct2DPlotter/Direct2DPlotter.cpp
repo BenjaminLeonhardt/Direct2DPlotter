@@ -22,6 +22,7 @@ HWND hButton = 0;
 RechnerLibrary rechnerLibrary;
 const int sizeFunktionBuffer = 255;
 TCHAR functionBuffer[sizeFunktionBuffer] = { 0 };
+TCHAR functionBufferOld[sizeFunktionBuffer] = { 0 };
 
 static mutex lockFunktion;
 static mutex lockAuswahlPunkt;
@@ -48,6 +49,12 @@ bool flacheninhaltZeichnen = false;
 bool stammfunktionZeichnen = false;
 bool kruemmungsradiusZeichnen = false;
 bool bogenlaengeZeichnen = false;
+bool test = false;
+double testx = 10.0;
+double testy = 10.0;
+double gravi = 9.81;
+double geschw = 0.0;
+clock_t testtime = 0;
 
 
 int toggel = 0;
@@ -105,6 +112,7 @@ bool bogenlaengeZeichnen = false;*/
 #define buttonSeite1Anzeigen 24
 #define buttonCheckboxWendepunkte 25
 #define buttonWendepunktePressed 26
+#define buttonTestPressed 27
 
 HWND hMaximaMinimaButton;
 HWND hMaximaEditField;
@@ -138,6 +146,7 @@ HWND hbuttonCheckboxsteigungsgraph;
 HWND hbuttonCheckboxZweiteAbleitung;
 HWND hbuttonCheckboxNormale;
 HWND hbuttonCheckboxkruemmungsradius;
+HWND hTestField;
 
 HWND hTextMaximas;
 HWND hTextMinimas;
@@ -163,7 +172,11 @@ HWND hTextPolynomdivisionDoppelpunkt;
 HWND hTextPolynomdivisionErgebnis;
 
 
-
+wstring funktionText;
+wstring funktionErsteAbleitungText;
+wstring funktionZweiteAbleitungText;
+wstring funktionDritteAbleitungText;
+wstring funktionIntegralText;
 
 
 Graphics* graphics;
@@ -241,12 +254,12 @@ void zeichneKoordinatenkreuz(int cpuID) {
 			beschriftung += std::to_wstring(-i);
 
 			graphics->DrawLine(10000.0f, -i, -10000.0f, -i, 0.9f, 0.9f, 0.9f, 0.2f, cpuID);
-			graphics->DrawTextS(textEntfernung, -i, 30.0f, 30.0f, beschriftung, true, cpuID);
+			graphics->DrawTextS(textEntfernung, -i, 30.0f, 30.0f, beschriftung, true, true, 0.8, 0.8, 0.8, 10.0, cpuID);
 			graphics->DrawLine(strichhoehe1, -i, strichhoehe2, -i, 0.9f, 0.9f, 0.9f, 10.0f, cpuID);
 			
 			
 			graphics->DrawLine(i, 10000.0f, i, -10000.0f, 0.9f, 0.9f, 0.9f, 0.2f, cpuID);
-			graphics->DrawTextS(i, textEntfernung, 30.0f, 30.0f, beschriftung, true, cpuID);
+			graphics->DrawTextS(i, textEntfernung, 30.0f, 30.0f, beschriftung, true,true,0.8,0.8,0.8,10.0, cpuID);
 			graphics->DrawLine(i, strichhoehe2, i, strichhoehe1, 0.9f, 0.9f, 0.9f, 10.0f, cpuID);
 			
 		}
@@ -284,13 +297,74 @@ void clearScreen() {
 	lockGraph.unlock();
 }
 
+wstring funktionVectorToString(vector<double> funktion) {
+	wstring beschriftung;
+	bool periodErkannt = false;
+	wstring tmpBeschriftung;
+	int indexLetzteNachkommastelle = 0;
+	bool hatNachkommastellen = false;
+	int indexPeriod = 0;
 
+	for (int i = funktion.size() - 1; i > -1; i--) {
+		if (funktion[i] != 0) {
+			if (i != funktion.size() - 1 && funktion[i] > 0) {
+				beschriftung += '+';
+			}
+			tmpBeschriftung = std::to_wstring(funktion[i]);
+			periodErkannt = false;
+			hatNachkommastellen = false;
+			indexLetzteNachkommastelle = 0;
+			for (int j = 0; j < tmpBeschriftung.size(); j++) {
+				if (periodErkannt) {
+					if (tmpBeschriftung[j] != '0') {
+						indexLetzteNachkommastelle = j+1;
+						hatNachkommastellen = true;
+					}
+				}
+				if (tmpBeschriftung[j] == '.') {
+					periodErkannt = true;
+					indexPeriod = j;
+				}
+			}
+			if (hatNachkommastellen) {
+				for (int j = 0; j < indexLetzteNachkommastelle; j++) {
+					beschriftung += tmpBeschriftung[j];					
+				}
+				beschriftung += '*';
+			}
+			else {
+				for (int j = 0; j < indexPeriod; j++) {
+					if (i == 0) {
+						beschriftung += tmpBeschriftung[j];
+					}
+					else {
+						if (tmpBeschriftung[j] != '1') {
+							beschriftung += tmpBeschriftung[j];
+							//beschriftung += '*';
+						}
+					}
+				}
+			}
+
+
+			if (i >= 2) {
+				beschriftung += L"x^";
+				beschriftung += std::to_wstring(i);
+			}
+			if (i == 1) {
+				beschriftung += L"x";
+			}
+		}
+	}
+	return beschriftung;
+}
 
 
 void punkte_berechnen() {
-	lockFunktion.lock();
+	lockFunktion.lock(); cout << "lockFunction lock in punkte berechnen" << endl;
 	rechnerLibrary.getFunktionAlsVector().clear();
 	rechnerLibrary.setFunctionBuffer(functionBuffer);
+	//rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
 	rechnerLibrary.syntaxbaumErstellen();
 	punkte.clear();
 	punkteErsteAbleitung.clear();
@@ -300,6 +374,21 @@ void punkte_berechnen() {
 	rechnerLibrary.setZweiteAbleitung(rechnerLibrary.funktionAbleiten(rechnerLibrary.getErsteAbleitung()));
 	rechnerLibrary.setDritteAbleitung(rechnerLibrary.funktionAbleiten(rechnerLibrary.getZweiteAbleitung()));
 	rechnerLibrary.integrieren(rechnerLibrary.getFunktionAlsVector());
+
+	funktionText = L"f(x)=";
+	funktionText += funktionVectorToString(rechnerLibrary.getFunktionAlsVector());
+
+	funktionErsteAbleitungText = L"f '(x)=";
+	funktionErsteAbleitungText += funktionVectorToString(rechnerLibrary.getErsteAbleitung());
+	funktionZweiteAbleitungText = L"f ''(x)=";
+	funktionZweiteAbleitungText += funktionVectorToString(rechnerLibrary.getZweiteAbleitung());
+	funktionDritteAbleitungText = L"f '''(x)=";
+	funktionDritteAbleitungText += funktionVectorToString(rechnerLibrary.getDritteAbleitung());
+	funktionIntegralText = L"F(x)=";
+	funktionIntegralText += funktionVectorToString(rechnerLibrary.getStammfunktionAlsVector());
+
+	
+
 	double xOld = 0;
 	double yOld = 0;
 	bool round2 = false;
@@ -444,7 +533,7 @@ void plotter_thread() {
 		if (vergroesserung > 20) {
 			if (counter == 0) {
 				lockSyntaxbaum.lock();
-				punkte_berechnen();
+				//punkte_berechnen();
 				lockSyntaxbaum.unlock();
 				counter++;
 			}
@@ -452,19 +541,24 @@ void plotter_thread() {
 		if (vergroesserung < 20) {
 			if (counter == 1) {
 				lockSyntaxbaum.lock();
-				punkte_berechnen();
+				//punkte_berechnen();
 				lockSyntaxbaum.unlock();
 				counter--;
 			}
 		}
-
+		lockFunktion.lock();
 		graphics->DrawCircle(-aktuellerPunktAmGraph.x, aktuellerPunktAmGraph.y, 1, 0.2f, 0.2f, 0.7f, 1.0f,0);
 
+		graphics->DrawTextS(10, 20, 200, 40, funktionText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+		graphics->DrawTextS(10, 60, 200, 20, funktionErsteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+		graphics->DrawTextS(10, 100, 200, 20, funktionZweiteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+		graphics->DrawTextS(10, 150, 200, 20, funktionDritteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+		graphics->DrawTextS(10, 200, 200, 20, funktionIntegralText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
 		/*for (int i = 0; i < graphics->getMaxCPU(); i++) {
 			threadsZeichnen[i] = new thread(&zeichneGraph, i, std::ref(punkte));
 			//threadsZeichnen[i]->join();
 		}*/
-		lockFunktion.lock();
+		
 		for (int i = 1; i < punkte.size(); i++) {
 			try {
 				if(graphZeichnen){
@@ -563,6 +657,38 @@ void plotter_thread() {
 				catch (exception e) {}
 			}
 		}
+		if (test) {
+			bool unten = false;
+			if (testx-0.5 < 0) {
+				if (geschw < 0.002) {
+					geschw = 0;
+					unten = true;
+				}
+				else {
+					geschw = (-1) * geschw * (0.8);
+				}
+				
+			}
+			
+			clock_t tmpTime = clock();
+			clock_t difftime = tmpTime - testtime;
+			//difftime = 20;
+			double graviFuerVergangeneZeit;
+			if (!unten) {
+				graviFuerVergangeneZeit = gravi * ((double)difftime / 1000);
+				geschw = geschw + graviFuerVergangeneZeit;
+				double tmp = testx - geschw;
+				if (tmp-0.5 > 0) {
+					testx = testx - geschw;
+				}
+				else {
+					testx = 0;
+				}
+				
+			}
+			graphics->DrawCircle(testy,testx, 0.5, 0.8f, 0.8f, 0.2f, 10.0f, 0);
+		}
+		testtime = clock();
 		lockWendepunkte.unlock();
 		lockFunktion.unlock();
 		lockGraph.lock();
@@ -593,6 +719,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 	GetWindowText(hEdit, functionBuffer, 20);
+	for (int i = 0; i < 20 && functionBuffer[i]!=0; i++) {
+		functionBufferOld[i] = functionBuffer[i];
+	}
+	
 	rechnerLibrary.setFunctionBuffer(functionBuffer);
 	lockSyntaxbaum.lock();
 	FunktionSyntaxbaum baum;
@@ -808,6 +938,7 @@ void buttonsZeichnenSeite2(HWND hwnd) {
 	hpolynompolynomDivisorButton = CreateWindowW(L"button", L"Polynomdivision berechnen", WS_VISIBLE | WS_CHILD | WS_BORDER, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonPolynomdivisionBerechnen, NULL, NULL);
 	hTextPolynomdivisionErgebnis = CreateWindowW(L"static", L" Ergebnis:", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc), 70, 20, hwnd, NULL, NULL, NULL);
 	hpolynomDivisorErgebnisEditField = CreateWindowW(L"edit", L"?", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 80, 9 + (23 * bc++), 180, 20, hwnd, NULL, NULL, NULL);
+	hTestField = CreateWindowW(L"button", L"Test", WS_VISIBLE | WS_CHILD | WS_BORDER, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonTestPressed, NULL, NULL);
 
 	hButtonSeite1 = CreateWindowW(L"button", L"<-", WS_VISIBLE | WS_CHILD | WS_BORDER, 200, 9 + (23 * bc++), 60, 20, hwnd, (HMENU)buttonSeite1Anzeigen, NULL, NULL);
 }
@@ -974,23 +1105,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
             switch (wmId)
             {
 			case 1:
-				
+			{
 				gwtstat = 0;
 				gwtstat = GetWindowText(hEdit, functionBuffer, 20);
-				lockSyntaxbaum.lock();
-				rechnerLibrary.setFunctionBuffer(functionBuffer);				
-				rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
-				rechnerLibrary.setSyntaxbaum(baum);
-				lockSyntaxbaum.unlock();
-				SetWindowText(hNullstellenEditField, L"?");
-				SetWindowText(hMaximaEditField, L"?");
-				SetWindowText(hMinimaEditField, L"?");	
-				SetWindowText(hFlaecheninhaltAusgebenField, L"?");
-				rechnerLibrary.resetVals();
-				lockSyntaxbaum.lock();
-				punkte_berechnen();
-				lockSyntaxbaum.unlock();
+				bool neueEingabe = true;
+				for (int i = 0; i < 20 && functionBuffer[i] != 0; i++) {
+					if (functionBufferOld[i] != functionBuffer[i]) {
+						neueEingabe = false;
+					}
+				}
+				if (!neueEingabe) {
+					lockSyntaxbaum.lock();
+					if (gwtstat != 0) {
+						rechnerLibrary.setFunctionBuffer(functionBuffer);
+						rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
+						rechnerLibrary.setSyntaxbaum(baum);
+					}
+					lockSyntaxbaum.unlock();
+					SetWindowText(hNullstellenEditField, L"?");
+					SetWindowText(hMaximaEditField, L"?");
+					SetWindowText(hMinimaEditField, L"?");
+					SetWindowText(hFlaecheninhaltAusgebenField, L"?");
+					rechnerLibrary.resetVals();
+					lockSyntaxbaum.lock();
+					punkte_berechnen();
+					lockSyntaxbaum.unlock();
+					for (int i = 0; i < 20 && functionBuffer[i] != 0; i++) {
+						functionBufferOld[i] = functionBuffer[i];
+					}
+				}
 				break;
+			}
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -1211,7 +1356,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				
 				ErgebnisMitRest = rechnerLibrary.polynomdivision(functionAlsVectorPolynomdivisionZaehler, functionAlsVectorPolynomdivisionNenner);
 				beschriftung = L"";
-				for (int i = ErgebnisMitRest[0].size() - 1; i > -1; i--) {
+				beschriftung = funktionVectorToString(ErgebnisMitRest[0]);
+				/*for (int i = ErgebnisMitRest[0].size() - 1; i > -1; i--) {
 					if (i != ErgebnisMitRest[0].size() - 1 && ErgebnisMitRest[0][i] > 0) {
 						beschriftung += '+';
 					}
@@ -1257,7 +1403,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 					if (i == 1) {
 						beschriftung += L"x";
 					}					
-				}
+				}*/
 				{
 					bool rest = false;
 					for (int i = 0; i < ErgebnisMitRest[1].size(); i++) {
@@ -1282,6 +1428,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 					SetWindowText(hpolynomDivisorErgebnisEditField, beschriftung.c_str());
 				}
 				break;
+			case buttonTestPressed:
+				testx = 50;
+				test = true;
 			case buttonSeite2Anzeigen:
 			{
 				Graphics g;

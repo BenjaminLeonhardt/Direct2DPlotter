@@ -238,7 +238,7 @@ void Graphics::DrawLineRelativ(float x, float y, float u, float v, float r, floa
 
 }
 
-void Graphics::DrawTextS(float x, float y, float width, float height, std::wstring* str, bool rotieren, int cpuID) {
+void Graphics::DrawTextS(float x, float y, float width, float height, std::wstring* str, bool rotieren, bool bewegen, float r, float g, float b, float a, int cpuID) {
 	if (rotieren) {
 		Rotieren(x, y);
 	}
@@ -248,7 +248,7 @@ void Graphics::DrawTextS(float x, float y, float width, float height, std::wstri
 	x += centerPosX;
 	y += centerPosY;*/
 
-	brush->SetColor(D2D1::ColorF(0.05f, 0.05f, 0.05f, 10.0f));
+	brush->SetColor(D2D1::ColorF(r, g, b,a));
 	//brush[cpuID]->SetColor(D2D1::ColorF(0.05f, 0.05f, 0.05f, 10.0f));
 
 	D2D1_RECT_F* rect;
@@ -264,27 +264,35 @@ void Graphics::DrawTextS(float x, float y, float width, float height, std::wstri
 	delete rect;
 }
 
-void Graphics::DrawTextS(float x, float y, float width, float height, std::wstring str,bool rotieren, int cpuID) {
+void Graphics::DrawTextS(float x, float y, float width, float height, std::wstring str,bool rotieren, bool bewegen, float r, float g, float b, float a, int cpuID) {
 	if (rotieren) {
 		Rotieren(x, y);
 	}
+	float x2 = 0;
+	float y2 = 0;
+	if (bewegen) {
+		x2 = (x - 2) * vergroesserung;
+		y2 = y * vergroesserung;
 
-	float x2 = (x - 2) * vergroesserung;
-	float y2 = y * vergroesserung;
+		x2 = x2 + centerPosX;
+		y2 = y2 + centerPosY;
 
-	x2 = x2 + centerPosX;
-	y2 = y2 + centerPosY;
+		x *= vergroesserung;
+		y *= vergroesserung;
 
-	x *= vergroesserung;
-	y *= vergroesserung;
-
-	x += centerPosX;
-	y += centerPosY;
+		x += centerPosX;
+		y += centerPosY;
+	}
+	else {
+		x2 = (x - 2);
+		y2 = y;
+	}
+	
 
 
 	
 
-	D2D1_RECT_F* rect2;
+	/*D2D1_RECT_F* rect2;
 	rect2 = new D2D1_RECT_F();
 	rect2->bottom = y2 + height;
 	rect2->top = y2;
@@ -301,13 +309,13 @@ void Graphics::DrawTextS(float x, float y, float width, float height, std::wstri
 	rect->top = y;
 	rect->left = x;
 	rect->right = x + width;
-	brush->SetColor(D2D1::ColorF(0.8f, 0.8f, 0.8f, 10.0f));
+	brush->SetColor(D2D1::ColorF(r,g, b, a));
 	renderTarget->DrawTextW(str.c_str(), wcslen(str.c_str()), tf, rect, brush, D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE_NATURAL);
 	/*brush[cpuID]->SetColor(D2D1::ColorF(0.8f, 0.8f, 0.8f, 10.0f));
 	renderTarget[cpuID]->DrawTextW(str.c_str(), wcslen(str.c_str()), tf, rect, brush[cpuID], D2D1_DRAW_TEXT_OPTIONS_NONE, DWRITE_MEASURING_MODE_NATURAL);*/
 
 	delete rect;
-	delete rect2;
+	//delete rect2;
 }
 
 static mutex lockGraph;

@@ -30,6 +30,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <time.h>
 
 #include <d2d1.h>
 #include <iostream>
