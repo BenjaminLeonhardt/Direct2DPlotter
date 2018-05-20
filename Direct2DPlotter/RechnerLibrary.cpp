@@ -676,6 +676,14 @@ void RechnerLibrary::parseFuntionBuffer(FunktionSyntaxbaum& neuerFunktionSyntaxb
 		}
 	}
 	while (!gefunden) {
+		if (rechteGrenze == 0) {
+			neuerFunktionSyntaxbaum.setRoot(&neuerFunktionSyntaxbaum);
+			neuerFunktionSyntaxbaum.setInhalt(functionAlsString[0]);
+			neuerFunktionSyntaxbaum.setLinkesChild(nullptr);
+			neuerFunktionSyntaxbaum.setRechtesChild(nullptr);
+			neuerFunktionSyntaxbaum.setIndex(0);
+			
+		}
 		for (int i = 0; i < rechteGrenze; i++) { // ^ , vorzeichen, * /, + -
 			if (vorzeichenLevel == 0) {
 				if (functionAlsString[i] == '+' || functionAlsString[i] == '-') {
@@ -765,16 +773,20 @@ void RechnerLibrary::ausSyntaxbaumVektorErstellen(FunktionSyntaxbaum* aktuellerK
 			functionAlsVectorLokal[0] += aktuellerKnoten->getInhalt() - 48;
 		}
 	}
-	if (aktuellerKnoten->getLinkesChild()->getLinkesChild() != nullptr) {
-		ausSyntaxbaumVektorErstellen(aktuellerKnoten->getLinkesChild(), functionAlsVectorLokal);
+	if (aktuellerKnoten->getLinkesChild() != nullptr) {
+		if (aktuellerKnoten->getLinkesChild()->getLinkesChild() != nullptr) {
+			ausSyntaxbaumVektorErstellen(aktuellerKnoten->getLinkesChild(), functionAlsVectorLokal);
+		}
 	}
-	if (aktuellerKnoten->getRechtesChild()->getRechtesChild() != nullptr&&(aktuellerKnoten->getInhalt() == '+' || aktuellerKnoten->getInhalt() == '^' || aktuellerKnoten->getInhalt() == '*' )) {
-		ausSyntaxbaumVektorErstellen(aktuellerKnoten->getRechtesChild(), functionAlsVectorLokal);
+	if (aktuellerKnoten->getRechtesChild() != nullptr) {
+		if (aktuellerKnoten->getRechtesChild()->getRechtesChild() != nullptr&&(aktuellerKnoten->getInhalt() == '+' || aktuellerKnoten->getInhalt() == '^' || aktuellerKnoten->getInhalt() == '*' )) {
+			ausSyntaxbaumVektorErstellen(aktuellerKnoten->getRechtesChild(), functionAlsVectorLokal);
+		}
+	
+		if (aktuellerKnoten->getRechtesChild()->getRechtesChild() != nullptr && aktuellerKnoten->getInhalt() == '-' ) {
+			ausSyntaxbaumVektorErstellen(aktuellerKnoten->getRechtesChild(), functionAlsVectorLokal);
+		}
 	}
-	if (aktuellerKnoten->getRechtesChild()->getRechtesChild() != nullptr && aktuellerKnoten->getInhalt() == '-' ) {
-		ausSyntaxbaumVektorErstellen(aktuellerKnoten->getRechtesChild(), functionAlsVectorLokal);
-	}
-
 	if (aktuellerKnoten->getInhalt() == '^') {
 		if ((aktuellerKnoten->getLinkesChild()->getInhalt() == 'x' || aktuellerKnoten->getLinkesChild()->getInhalt() == 'X') && (aktuellerKnoten->getRechtesChild()->getInhalt() >= '1' && aktuellerKnoten->getRechtesChild()->getInhalt() <= '9')) {
 			int hochZahl = aktuellerKnoten->getRechtesChild()->getInhalt() - 48;
@@ -782,8 +794,10 @@ void RechnerLibrary::ausSyntaxbaumVektorErstellen(FunktionSyntaxbaum* aktuellerK
 				functionAlsVectorLokal.resize(hochZahl + 1);
 			}
 			double multiplyer = 1.0;
-			if (aktuellerKnoten->getParent()->getInhalt() == '*' && aktuellerKnoten->getParent()->getRechtesChild() == aktuellerKnoten) {
-				multiplyer = aktuellerKnoten->getParent()->getLinkesChild()->getInhalt() - 48;
+			if (aktuellerKnoten->getParent() != nullptr) {
+				if (aktuellerKnoten->getParent()->getInhalt() == '*' && aktuellerKnoten->getParent()->getRechtesChild() == aktuellerKnoten) {
+					multiplyer = aktuellerKnoten->getParent()->getLinkesChild()->getInhalt() - 48;
+				}
 			}
 			bool vorzeichen = false;
 			FunktionSyntaxbaum* next = aktuellerKnoten;
@@ -879,11 +893,13 @@ void RechnerLibrary::syntaxbaumErstellen() {
 }
 
 vector<double>& RechnerLibrary::funktionAbleiten(vector<double> &funktion) {
-	vector<double>* abgeleiteteFunktion= new vector<double>();
-	abgeleiteteFunktion->resize(funktion.size() - 1);
-	for (int j = funktion.size() - 1; j > 0; j--) {
-		if (funktion[j] != 0) {
-			abgeleiteteFunktion->at(j - 1) = funktion[j] * j;
+	vector<double>* abgeleiteteFunktion = new vector<double>();
+	if (funktion.size() > 0) {
+		abgeleiteteFunktion->resize(funktion.size() - 1);
+		for (int j = funktion.size() - 1; j > 0; j--) {
+			if (funktion[j] != 0) {
+				abgeleiteteFunktion->at(j - 1) = funktion[j] * j;
+			}
 		}
 	}
 	return *abgeleiteteFunktion;

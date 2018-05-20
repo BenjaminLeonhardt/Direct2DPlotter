@@ -1025,6 +1025,13 @@ double posY = 400;										//Position des geplotteten Teils (mittelpunkt)
 int windowSizeX = 1200;									//Fenstergröße
 int windowSizeY = 850;									//Fenstergröße*/
 
+int getLaenge(TCHAR* functionbufferL) {
+	int i = 0;
+	for (i; i < 20 && functionbufferL[i] != 0; i++) {
+		
+	}
+	return i;
+}
 
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
@@ -1117,13 +1124,26 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 			{
 				gwtstat = 0;
 				gwtstat = GetWindowText(hEdit, functionBuffer, 20);
-				bool neueEingabe = true;
-				for (int i = 0; i < 20 && functionBuffer[i] != 0; i++) {
-					if (functionBufferOld[i] != functionBuffer[i]) {
-						neueEingabe = false;
+				bool neueEingabe = false;
+				int zeichenGleich = 0;
+				int laengeAlt = getLaenge(functionBufferOld);
+				int laengeNeu = getLaenge(functionBuffer);
+				int laengste = 0;
+				int i = 0;
+				if (laengeAlt == laengeNeu) {
+					for (i; i < 20 && functionBuffer[i] != 0; i++) {
+						if (functionBufferOld[i] == functionBuffer[i]) {
+							zeichenGleich++;
+						}
+					}
+					if (i != zeichenGleich) {
+						neueEingabe = true;
 					}
 				}
-				if (!neueEingabe) {
+				else {
+					neueEingabe = true;
+				}
+				if (neueEingabe) {
 					lockSyntaxbaum.lock();
 					if (gwtstat != 0) {
 						rechnerLibrary.setFunctionBuffer(functionBuffer);
@@ -1139,7 +1159,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 					lockSyntaxbaum.lock();
 					punkte_berechnen();
 					lockSyntaxbaum.unlock();
-					for (int i = 0; i < 20 && functionBuffer[i] != 0; i++) {
+					for (int i = 0; i < 20; i++) {
 						functionBufferOld[i] = functionBuffer[i];
 					}
 				}
