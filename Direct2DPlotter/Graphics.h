@@ -48,6 +48,7 @@ public:
 	void DrawRect(float x, float y, float height, float width, float r, float g, float b, float a, int cpuID);
 	void DrawLine(float x1, float y1, float x2, float y2, float r, float g, float b, float a, int cpuID);
 	void DrawLineRelativ(float x1, float y1, float x2, float y2, float r, float g, float b, float a, bool normale, int cpuID);
+	void DrawLineS(float x1, float y1, float x2, float y2, float r, float g, float b, float a, int cpuID);
 	void DrawTextS(float x, float y, float width, float height, std::wstring *str, bool rotieren, bool bewegen, float r, float g, float b, float a, int cpuID);
 	void DrawTextS(float x, float y, float width, float height, std::wstring str, bool rotieren, bool bewegen, float r, float g, float b, float a, int cpuID);
 	void DrawPoint(float x, float y, float r, float g, float b, float a, int cpuID);

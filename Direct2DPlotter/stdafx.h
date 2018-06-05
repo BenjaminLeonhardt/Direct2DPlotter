@@ -23,6 +23,7 @@
 #include <math.h>
 #include "Matrix.h"
 #include "FunktionSyntaxbaum.h"
+#include "FunktionAlsVektorSyntaxbaum.h"
 
 #include "Graphics.h"
 #include "dreieck.h"

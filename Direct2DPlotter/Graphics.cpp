@@ -238,6 +238,22 @@ void Graphics::DrawLineRelativ(float x, float y, float u, float v, float r, floa
 
 }
 
+void Graphics::DrawLineS(float x, float y, float u, float v, float r, float g, float b, float a, int cpuID) {
+
+	brush->SetColor(D2D1::ColorF(r, g, b, a));
+	//brush[cpuID]->SetColor(D2D1::ColorF(r, g, b, a));
+	D2D_POINT_2F point1;
+	point1.x = x;
+	point1.y = y;
+	D2D_POINT_2F point2;
+	point2.x = u;
+	point2.y = v;
+	//	renderTarget[cpuID]->DrawLine(point1, point2, brush[cpuID], 1.0f, 0);
+
+	renderTarget->DrawLine(point1, point2, brush, 1.0f, 0);
+
+}
+
 void Graphics::DrawTextS(float x, float y, float width, float height, std::wstring* str, bool rotieren, bool bewegen, float r, float g, float b, float a, int cpuID) {
 	if (rotieren) {
 		Rotieren(x, y);

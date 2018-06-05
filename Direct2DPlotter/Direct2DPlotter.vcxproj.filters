@@ -48,6 +48,12 @@
     <ClInclude Include="RechnerLibrary.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="FunktionAlsVektorSyntaxbaum.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="Validator.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -72,6 +78,12 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="RechnerLibrary.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="FunktionAlsVektorSyntaxbaum.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="Validator.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

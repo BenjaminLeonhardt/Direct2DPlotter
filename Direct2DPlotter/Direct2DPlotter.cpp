@@ -30,6 +30,7 @@ static mutex lockTangente;
 static mutex lockExtremstelle;
 static mutex lockWendepunkte;
 static mutex lockNullstelle;
+static mutex lockPolstelle;
 static mutex lockSyntaxbaum;
 
 bool graphZeichnen = true;
@@ -40,6 +41,7 @@ bool zweiteAbleitungZeichnen = false;
 bool maximaMinimaZeichnen = false;
 bool wendepunkteZeichnen = false;
 bool nullstellenZeichnen = false;
+bool polstellenZeichnen = false;
 bool MitternachsformelZeichnen = false;
 bool pqZeichnen = false;
 bool newtonregelZeichnen = false;
@@ -113,6 +115,7 @@ bool bogenlaengeZeichnen = false;*/
 #define buttonCheckboxWendepunkte 25
 #define buttonWendepunktePressed 26
 #define buttonTestPressed 27
+#define buttonCheckboxPolstellen 28
 
 HWND hMaximaMinimaButton;
 HWND hMaximaEditField;
@@ -122,6 +125,7 @@ HWND hPQButton;
 HWND hNewtonButton;
 HWND hRegulaFalsiButton;
 HWND hNullstellenEditField;
+HWND hPolstellenEditField;
 HWND hWendepunkteButton;
 HWND hTextWendepunkte;
 HWND hWendepunkteEditField;
@@ -153,6 +157,8 @@ HWND hTextMinimas;
 HWND hbuttonCheckboxExtremstellen;
 HWND hTextNullstellen;
 HWND hbuttonCheckboxNullstellen;
+HWND hTextPolstellen;
+HWND hbuttonCheckboxPolstellen;
 HWND hTextIntegralgrenzen;
 HWND hTextIntegralLinkeGrenze;
 HWND hTextIntegralRechteGrenze;
@@ -179,19 +185,32 @@ wstring funktionDritteAbleitungText;
 wstring funktionIntegralText;
 
 
+wstring funktionTextGebrochenRationalZaehler;
+wstring funktionTextGebrochenRationalNenner;
+wstring funktionErsteAbleitungTextGebrochenRationalZaehler;
+wstring funktionErsteAbleitungTextGebrochenRationalNenner;
+wstring funktionZweiteAbleitungTextGebrochenRationalZaehler;
+wstring funktionZweiteAbleitungTextGebrochenRationalNenner;
+wstring funktionDritteAbleitungTextGebrochenRationalZaehler;
+wstring funktionDritteAbleitungTextGebrochenRationalNenner;
+wstring funktionIntegralTextGebrochenRationalZaehler;
+wstring funktionIntegralTextGebrochenRationalNenner;
+
+
 Graphics* graphics;
 thread* plotterMainThread;
 static long double PI = 3.141592653589793238463;
 static mutex lockGraph;
+static mutex lockRun;
 bool run = true;
 
 
 
 int windowSizeX = 1200;									//Fenstergröße
-int windowSizeY = 850;									//Fenstergröße
+int windowSizeY = 900;									//Fenstergröße
 
 int windowSizeEingabefeldX = 300;						//Fenstergröße
-int windowSizeEingabefeldY = 850;						//Fenstergröße
+int windowSizeEingabefeldY = 900;						//Fenstergröße
 
 double posX = 600;										//Position des geplotteten Teils (mittelpunkt)
 double posY = 400;										//Position des geplotteten Teils (mittelpunkt)
@@ -297,67 +316,7 @@ void clearScreen() {
 	lockGraph.unlock();
 }
 
-wstring funktionVectorToString(vector<double> funktion) {
-	wstring beschriftung;
-	bool periodErkannt = false;
-	wstring tmpBeschriftung;
-	int indexLetzteNachkommastelle = 0;
-	bool hatNachkommastellen = false;
-	int indexPeriod = 0;
 
-	for (int i = funktion.size() - 1; i > -1; i--) {
-		if (funktion[i] != 0) {
-			if (i != funktion.size() - 1 && funktion[i] > 0) {
-				beschriftung += '+';
-			}
-			tmpBeschriftung = std::to_wstring(funktion[i]);
-			periodErkannt = false;
-			hatNachkommastellen = false;
-			indexLetzteNachkommastelle = 0;
-			for (int j = 0; j < tmpBeschriftung.size(); j++) {
-				if (periodErkannt) {
-					if (tmpBeschriftung[j] != '0') {
-						indexLetzteNachkommastelle = j+1;
-						hatNachkommastellen = true;
-					}
-				}
-				if (tmpBeschriftung[j] == '.') {
-					periodErkannt = true;
-					indexPeriod = j;
-				}
-			}
-			if (hatNachkommastellen) {
-				for (int j = 0; j < indexLetzteNachkommastelle; j++) {
-					beschriftung += tmpBeschriftung[j];					
-				}
-				beschriftung += '*';
-			}
-			else {
-				for (int j = 0; j < indexPeriod; j++) {
-					if (i == 0) {
-						beschriftung += tmpBeschriftung[j];
-					}
-					else {
-						if (tmpBeschriftung[j] != '1') {
-							beschriftung += tmpBeschriftung[j];
-							//beschriftung += '*';
-						}
-					}
-				}
-			}
-
-
-			if (i >= 2) {
-				beschriftung += L"x^";
-				beschriftung += std::to_wstring(i);
-			}
-			if (i == 1) {
-				beschriftung += L"x";
-			}
-		}
-	}
-	return beschriftung;
-}
 
 
 void punkte_berechnen() {
@@ -375,7 +334,7 @@ void punkte_berechnen() {
 	rechnerLibrary.setDritteAbleitung(rechnerLibrary.funktionAbleiten(rechnerLibrary.getZweiteAbleitung()));
 	rechnerLibrary.integrieren(rechnerLibrary.getFunktionAlsVector());
 
-	funktionText = L"f(x)=";
+	/*funktionText = L"f(x)=";
 	funktionText += funktionVectorToString(rechnerLibrary.getFunktionAlsVector());
 
 	funktionErsteAbleitungText = L"f '(x)=";
@@ -385,7 +344,7 @@ void punkte_berechnen() {
 	funktionDritteAbleitungText = L"f '''(x)=";
 	funktionDritteAbleitungText += funktionVectorToString(rechnerLibrary.getDritteAbleitung());
 	funktionIntegralText = L"F(x)=";
-	funktionIntegralText += funktionVectorToString(rechnerLibrary.getStammfunktionAlsVector());
+	funktionIntegralText += funktionVectorToString(rechnerLibrary.getStammfunktionAlsVector());*/
 
 	
 
@@ -450,19 +409,295 @@ void punkte_berechnen() {
 	lockFunktion.unlock();
 }
 
+wstring funktionVectorToString(vector<double> funktion) {
+	wstring beschriftung;
+	bool periodErkannt = false;
+	wstring tmpBeschriftung;
+	int indexLetzteNachkommastelle = 0;
+	bool hatNachkommastellen = false;
+	int indexPeriod = 0;
+
+	for (int i = funktion.size() - 1; i > -1; i--) {
+		if (funktion[i] != 0) {
+			if (i != funktion.size() - 1 && funktion[i] > 0) {
+				beschriftung += '+';
+			}
+			tmpBeschriftung = std::to_wstring(funktion[i]);
+			periodErkannt = false;
+			hatNachkommastellen = false;
+			indexLetzteNachkommastelle = 0;
+			for (int j = 0; j < tmpBeschriftung.size(); j++) {
+				if (periodErkannt) {
+					if (tmpBeschriftung[j] != '0') {
+						indexLetzteNachkommastelle = j + 1;
+						hatNachkommastellen = true;
+					}
+				}
+				if (tmpBeschriftung[j] == '.') {
+					periodErkannt = true;
+					indexPeriod = j;
+				}
+			}
+			if (hatNachkommastellen) {
+				for (int j = 0; j < indexLetzteNachkommastelle; j++) {
+					beschriftung += tmpBeschriftung[j];
+				}
+				beschriftung += '*';
+			}
+			else {
+				for (int j = 0; j < indexPeriod; j++) {
+					if (i == 0) {
+						beschriftung += tmpBeschriftung[j];
+					}
+					else {
+						if (tmpBeschriftung[j] != '1') {
+							beschriftung += tmpBeschriftung[j];
+							//beschriftung += '*';
+						}
+					}
+				}
+			}
+
+
+			if (i >= 2) {
+				beschriftung += L"x^";
+				beschriftung += std::to_wstring(i);
+			}
+			if (i == 1) {
+				beschriftung += L"x";
+			}
+		}
+	}
+
+	return beschriftung;
+}
+
+vector<Vector2D>polstellenPunkteBerechnen;
+bool polstellenPunkteBerechnenErledigt=false;
+void punkte_berechnenGebrochenRational() {
+	lockFunktion.lock(); cout << "lockFunction lock in punkte berechnen" << endl;
+	//rechnerLibrary.getFunktionAlsVector().clear();
+	//rechnerLibrary.setFunctionBuffer(functionBuffer);
+	//rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
+	//rechnerLibrary.syntaxbaumErstellen();
+	punkte.clear();
+	punkteErsteAbleitung.clear();
+	punkteZweiteAbleitung.clear();
+	punkteStammfunktion.clear();
+	rechnerLibrary.setErsteAbleitungGebrochenRational(rechnerLibrary.funktionAbleitenGebrochenRational(rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt()));
+	if (&rechnerLibrary.getErsteAbleitungGebrochenRational() != nullptr) {
+		rechnerLibrary.setZweiteAbleitungGebrochenRational(rechnerLibrary.funktionAbleitenGebrochenRational(rechnerLibrary.getErsteAbleitungGebrochenRational()));
+		if (&rechnerLibrary.getZweiteAbleitungGebrochenRational() != nullptr) {
+			rechnerLibrary.setDritteAbleitungGebrochenRational(rechnerLibrary.funktionAbleitenGebrochenRational(rechnerLibrary.getZweiteAbleitungGebrochenRational()));
+		}
+	}
+
+	if (rechnerLibrary.getSyntaxbaumGebrochenRational().getInhaltTChar() == '/') {
+		funktionText = L"f(x)=";
+		funktionTextGebrochenRationalZaehler = L"";
+		funktionTextGebrochenRationalZaehler += rechnerLibrary.getSyntaxbaumGebrochenRational().getLinkesChild()->getInhaltString();
+		funktionTextGebrochenRationalNenner = L"";
+		funktionTextGebrochenRationalNenner += rechnerLibrary.getSyntaxbaumGebrochenRational().getRechtesChild()->getInhaltString();
+
+		funktionErsteAbleitungText = L"f'(x)=";
+
+		funktionZweiteAbleitungText = L"f''(x)=";
+		funktionDritteAbleitungText = L"f'''(x)=";
+		funktionIntegralText = L"F(x)=";
+	}
+	else {
+		funktionText = L"f(x)=";
+		funktionText += rechnerLibrary.getSyntaxbaumGebrochenRational().getInhaltString();
+		funktionErsteAbleitungText = L"f'(x)=";
+		funktionErsteAbleitungText += rechnerLibrary.getErsteAbleitungGebrochenRational().getInhaltString();
+		funktionZweiteAbleitungText = L"f''(x)=";
+		funktionZweiteAbleitungText += rechnerLibrary.getZweiteAbleitungGebrochenRational().getInhaltString();
+		funktionDritteAbleitungText = L"f'''(x)=";
+		funktionDritteAbleitungText += rechnerLibrary.getDritteAbleitungGebrochenRational().getInhaltString();
+		funktionIntegralText = L"F(x)=";
+		funktionIntegralText += funktionVectorToString(rechnerLibrary.getStammfunktionAlsVector());
+	}
+
+
+
+
+	/*rechnerLibrary.setZweiteAbleitung(rechnerLibrary.funktionAbleiten(rechnerLibrary.getErsteAbleitung()));
+	rechnerLibrary.setDritteAbleitung(rechnerLibrary.funktionAbleiten(rechnerLibrary.getZweiteAbleitung()));
+	rechnerLibrary.integrieren(rechnerLibrary.getFunktionAlsVector());
+
+	funktionText = L"f(x)=";
+	funktionText += funktionVectorToString(rechnerLibrary.getFunktionAlsVector());
+
+	funktionErsteAbleitungText = L"f '(x)=";
+	funktionErsteAbleitungText += funktionVectorToString(rechnerLibrary.getErsteAbleitung());
+	funktionZweiteAbleitungText = L"f ''(x)=";
+	funktionZweiteAbleitungText += funktionVectorToString(rechnerLibrary.getZweiteAbleitung());
+	funktionDritteAbleitungText = L"f '''(x)=";
+	funktionDritteAbleitungText += funktionVectorToString(rechnerLibrary.getDritteAbleitung());
+	funktionIntegralText = L"F(x)=";
+	funktionIntegralText += funktionVectorToString(rechnerLibrary.getStammfunktionAlsVector());*/
+
+
+
+	double xOld = 0;
+	double yOld = 0;
+	bool round2 = false;
+	double x = 0, y = 0;
+	double x2 = 0, yErsteAbleitung = 0, yZweiteAbleitung = 0;
+	double yStammfunktion = 0;
+	double tmp = 0;
+	double step = 0.2;
+	int von = -1000;
+	int bis = 1000;
+	if (vergroesserung > 20) {
+		step = 0.02;
+		von = -100;
+		bis = 100;
+	}
+	vector<Vector2D>polstellenPunkteBerechnen;
+	if (rechnerLibrary.getPolstellen().size() < 1&& polstellenPunkteBerechnenErledigt==false) {
+		rechnerLibrary.regulaFalsiVerfahrenGebrochenRational();
+		polstellenPunkteBerechnen = rechnerLibrary.getPolstellen();
+		polstellenPunkteBerechnenErledigt = true;
+		rechnerLibrary.getPolstellen().clear();
+		rechnerLibrary.getNullstellen().clear();
+		textNullstellenfeldAendern(L"?");
+		textPolstellenfeldAendern(L"?");
+	}else if (rechnerLibrary.getPolstellen().size() < 1 && polstellenPunkteBerechnenErledigt == true) {
+
+	}
+	else {
+		polstellenPunkteBerechnen = rechnerLibrary.getPolstellen();
+		
+	}
+	for (double i = von; i < bis; i += step) {
+
+		y = rechnerLibrary.getPunkt(i, &rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt());
+		yErsteAbleitung = rechnerLibrary.getPunkt(i, &rechnerLibrary.getErsteAbleitungGebrochenRational());
+		yZweiteAbleitung = rechnerLibrary.getPunkt(i, &rechnerLibrary.getZweiteAbleitungGebrochenRational());
+		/*yErsteAbleitung = rechnerLibrary.f(i, &rechnerLibrary.getErsteAbleitungAlsVector());
+		yZweiteAbleitung = rechnerLibrary.f(i, &rechnerLibrary.getZweiteAbleitung());
+		yStammfunktion = rechnerLibrary.f(i, &rechnerLibrary.getStammfunktionAlsVector());*/
+		//y = i*i*(i - 4) / (i + 4);
+		if (y < 500 && y > -500) {
+			if (rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt().getInhaltTChar() == '/') {
+				
+				for (int j = 0; j < polstellenPunkteBerechnen.size(); j++) {
+					if (polstellenPunkteBerechnen[j].x < 0) {
+						if ((i > (polstellenPunkteBerechnen[j].x - 0.2)) && (i < (polstellenPunkteBerechnen[j].x + 0.2))) {
+							step = 0.1;
+							if ((i > (polstellenPunkteBerechnen[j].x - 0.1)) && (i < (polstellenPunkteBerechnen[j].x + 0.1))) {
+								step = 0.05;
+								if ((i > (polstellenPunkteBerechnen[j].x - 0.05)) && (i < (polstellenPunkteBerechnen[j].x + 0.05))) {
+									step = 0.02;
+									if ((i > (polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+										step = 0.001;
+
+										if ((i > (polstellenPunkteBerechnen[j].x - 0.001)) && (i < (polstellenPunkteBerechnen[j].x + 0.001))) {
+											step = 0.0001;
+										}
+									}
+								}
+							}
+						}
+						else {
+							double step = 0.2;
+							if (vergroesserung > 20) {
+								step = 0.02;
+								if ((i >(polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+									step = 0.001;
+									
+									
+								}
+							}
+						}
+					}
+					else {
+						if ((i >(polstellenPunkteBerechnen[j].x - 0.2)) && (i < (polstellenPunkteBerechnen[j].x + 0.2))) {
+							step = 0.1;
+							if ((i >(polstellenPunkteBerechnen[j].x - 0.1)) && (i < (polstellenPunkteBerechnen[j].x + 0.1))) {
+								step = 0.05;
+								if ((i >(polstellenPunkteBerechnen[j].x - 0.05)) && (i < (polstellenPunkteBerechnen[j].x + 0.05))) {
+									step = 0.02;
+									if ((i >(polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+										step = 0.001;
+										if ((i >(polstellenPunkteBerechnen[j].x - 0.001)) && (i < (polstellenPunkteBerechnen[j].x + 0.001))) {
+											step = 0.0001;
+										}
+									}
+								}
+							}
+						}
+						else {
+							double step = 0.2;
+							if (vergroesserung > 20) {
+								step = 0.02;
+								if ((i >(polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+									step = 0.001;
+								}
+							}
+						}
+					}
+					
+				}
+			}
+			if (round2) {
+				Vector2D p;
+				p.x = i;
+				p.y = y;
+				punkte.push_back(p);
+			}
+		}
+		if (yErsteAbleitung < 500 && yErsteAbleitung > -500) {
+			if (round2) {
+				Vector2D p2;
+				p2.x = i;
+				p2.y = yErsteAbleitung;
+				punkteErsteAbleitung.push_back(p2);
+			}
+		}
+		if (yZweiteAbleitung < 500 && yZweiteAbleitung > -500) {
+			if (round2) {
+				Vector2D p2;
+				p2.x = i;
+				p2.y = yZweiteAbleitung;
+				punkteZweiteAbleitung.push_back(p2);
+			}
+		}
+		/*if (yStammfunktion < 500 && yStammfunktion > -500) {
+			if (round2) {
+				Vector2D p2;
+				p2.x = i;
+				p2.y = yStammfunktion;
+				punkteStammfunktion.push_back(p2);
+			}
+		}*/
+		xOld = x;
+		yOld = y;
+		round2 = true;
+	}
+	lockFunktion.unlock();
+}
+
 double radius = 0;
 double yKreis = 0;
 double xKreis = 0;
 
 void zeichneKreisAmGraph(double x) {
 	aktuellerPunktAmGraph.x = -x;
-	aktuellerPunktAmGraph.y = rechnerLibrary.f(-x, &rechnerLibrary.getFunktionAlsVector());
-	double steigungTangente = rechnerLibrary.f(-x, &rechnerLibrary.getErsteAbleitungAlsVector());
+	aktuellerPunktAmGraph.y = rechnerLibrary.getPunkt(-x, &rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt());
+	double steigungTangente = rechnerLibrary.getPunkt(-x, &rechnerLibrary.getErsteAbleitungGebrochenRational());
+	/*aktuellerPunktAmGraph.y = rechnerLibrary.f(-x, &rechnerLibrary.getFunktionAlsVector());
+	double steigungTangente = rechnerLibrary.f(-x, &rechnerLibrary.getErsteAbleitungAlsVector());*/
 	zeichneTangenteAmPunkt(aktuellerPunktAmGraph.y, steigungTangente);
 	
-	double yf = rechnerLibrary.f(-x, &rechnerLibrary.getFunktionAlsVector());
+	double yf = rechnerLibrary.getPunkt(-x, &rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt());
+	double yfs = rechnerLibrary.getPunkt(-x, &rechnerLibrary.getErsteAbleitungGebrochenRational());
+	double yfz = rechnerLibrary.getPunkt(-x, &rechnerLibrary.getZweiteAbleitungGebrochenRational());
+
+	/*double yf = rechnerLibrary.f(-x, &rechnerLibrary.getFunktionAlsVector());
 	double yfs = rechnerLibrary.f(-x, &rechnerLibrary.getErsteAbleitung());
-	double yfz = rechnerLibrary.f(-x, &rechnerLibrary.getZweiteAbleitung());
+	double yfz = rechnerLibrary.f(-x, &rechnerLibrary.getZweiteAbleitung());*/
 
 	radius = (pow(pow(yfs, 2) + 1, 1.5) / abs(yfz))*2;
 
@@ -537,7 +772,8 @@ void plotter_thread() {
 				rechnerLibrary.setFunctionBuffer(functionBuffer);
 				rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
 				rechnerLibrary.setSyntaxbaum(baum);
-				punkte_berechnen();
+				//punkte_berechnen();
+				punkte_berechnenGebrochenRational();
 				lockSyntaxbaum.unlock();
 				counter++;
 			}
@@ -549,154 +785,201 @@ void plotter_thread() {
 				rechnerLibrary.setFunctionBuffer(functionBuffer);
 				rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
 				rechnerLibrary.setSyntaxbaum(baum);
-				punkte_berechnen();
+				//punkte_berechnen();
+				punkte_berechnenGebrochenRational();
 				lockSyntaxbaum.unlock();
 				counter--;
 			}
 		}
 		lockFunktion.lock();
 		graphics->DrawCircle(-aktuellerPunktAmGraph.x, aktuellerPunktAmGraph.y, 1, 0.2f, 0.2f, 0.7f, 1.0f,0);
+		if (rechnerLibrary.getSyntaxbaumGebrochenRational().getInhaltTChar() == '/') {
+			int zeichenCounterZaehler = 0;
+			int zeichenCounterNenner = 0;
+			int maxZeichenCounter = 0;
+			int i = 0;
+			while (funktionTextGebrochenRationalZaehler[i] != 0) {
+				zeichenCounterZaehler++;
+				i++;
+			}
+			i = 0;
+			while (funktionTextGebrochenRationalNenner[i] != 0) {
+				zeichenCounterNenner++;
+				i++;
+			}
+			maxZeichenCounter = zeichenCounterZaehler > zeichenCounterNenner ? zeichenCounterZaehler : zeichenCounterNenner;
+			graphics->DrawTextS(5, 20, 40, 40, funktionText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(60, 10, ((double)maxZeichenCounter)*12, 40, funktionTextGebrochenRationalZaehler, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(60, 33, ((double)maxZeichenCounter)*12, 40, funktionTextGebrochenRationalNenner, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawLineS(60, 30, ((double)maxZeichenCounter)*12, 30, 0.8f, 0.8f, 0.8f, 10.0f,0);
 
-		graphics->DrawTextS(10, 20, 200, 40, funktionText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-		graphics->DrawTextS(10, 60, 200, 20, funktionErsteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-		graphics->DrawTextS(10, 100, 200, 20, funktionZweiteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-		graphics->DrawTextS(10, 150, 200, 20, funktionDritteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-		graphics->DrawTextS(10, 200, 200, 20, funktionIntegralText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 60, 400, 20, funktionErsteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 100, 400, 20, funktionZweiteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 150, 400, 20, funktionDritteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 200, 400, 20, funktionIntegralText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+		}
+		else {
+			graphics->DrawTextS(10, 20, 400, 40, funktionText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 60, 400, 20, funktionErsteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 100, 400, 20, funktionZweiteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 150, 400, 20, funktionDritteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 200, 400, 20, funktionIntegralText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+		}
+
 		/*for (int i = 0; i < graphics->getMaxCPU(); i++) {
 			threadsZeichnen[i] = new thread(&zeichneGraph, i, std::ref(punkte));
 			//threadsZeichnen[i]->join();
 		}*/
-		
-		for (int i = 1; i < punkte.size(); i++) {
-			try {
-				if(graphZeichnen){
-					graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i-1).x, punkte.at(i-1).y, 0.8f, 0.8f, 0.8f, 10.0f ,0);
-					if (bogenlaengeZeichnen) {
-						if (punkte.at(i).x > linkeGrenze&&punkte.at(i).x < rechteGrenze) {
-							graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i - 1).x, punkte.at(i - 1).y, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+		if (run) {
+			for (int i = 1; i < punkte.size(); i++) {
+				try {
+					if (graphZeichnen) {
+						if ((punkte.at(i).y > 30 && punkte.at(i - 1).y < -30) || (punkte.at(i).y < -30 && punkte.at(i - 1).y > 30)) {
+
+						}
+						else {
+							graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i - 1).x, punkte.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+						}
+
+						if (bogenlaengeZeichnen) {
+							if (punkte.at(i).x > linkeGrenze&&punkte.at(i).x < rechteGrenze) {
+								graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i - 1).x, punkte.at(i - 1).y, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+							}
+						}
+						if (flacheninhaltZeichnen) {
+							if ((-punkte.at(i).x) < (-linkeGrenze) && (-punkte.at(i).x) > (-rechteGrenze)) {
+								graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i).x, 0, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+							}
 						}
 					}
-					if (flacheninhaltZeichnen) {
-						if ((-punkte.at(i).x) < (-linkeGrenze) && (-punkte.at(i).x) > (-rechteGrenze)) {
-							graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i).x, 0, 0.8f, 0.8f, 0.8f, 10.0f, 0);
-						}
-					}
-				}
-			}
-			catch (exception e) {}
-		}
-		if (steigungsgraphZeichnen) {
-			for (int i = 1; i < punkteErsteAbleitung.size(); i++) {
-				try {
-					graphics->DrawLine(-punkteErsteAbleitung.at(i).x, punkteErsteAbleitung.at(i).y, -punkteErsteAbleitung.at(i - 1).x, punkteErsteAbleitung.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
-
 				}
 				catch (exception e) {}
 			}
-		}
-		if (zweiteAbleitungZeichnen) {
-			for (int i = 1; i < punkteZweiteAbleitung.size(); i++) {
-				try {
-					graphics->DrawLine(-punkteZweiteAbleitung.at(i).x, punkteZweiteAbleitung.at(i).y, -punkteZweiteAbleitung.at(i - 1).x, punkteZweiteAbleitung.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
-
-				}
-				catch (exception e) {}
-			}
-		}
-		if (stammfunktionZeichnen) {
-			for (int i = 1; i < punkteStammfunktion.size(); i++) {
-				try {
-					graphics->DrawLine(-punkteStammfunktion.at(i).x, punkteStammfunktion.at(i).y, -punkteStammfunktion.at(i - 1).x, punkteStammfunktion.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
-
-				}
-				catch (exception e) {}
-			}
-		}
 		
-		lockTangente.lock();
-		if (tangenteZeichnen) {
-			for (int i = 1; i < punkteTangente.size(); i++) {
-				try {
-					graphics->DrawLine(-punkteTangente.at(i).x, punkteTangente.at(i).y, -punkteTangente.at(i - 1).x , punkteTangente.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);								
-				}
-				catch (exception e) {}
-			}
-		}
-		if (normaleZeichnen) {
-			for (int i = 1; i < punkteNormale.size(); i++) {
-				try {
-					graphics->DrawLine(-punkteNormale.at(i).x, punkteNormale.at(i).y, -punkteNormale.at(i - 1).x, punkteNormale.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
-				}
-				catch (exception e) {}
-			}
-		}
-		if (kruemmungsradiusZeichnen) {
-			graphics->DrawCircle(xKreis, yKreis, radius, 0.2f, 0.7f, 0.2f, 0.7f, 0);
-			graphics->DrawCircle(xKreis, yKreis, 0.2, 0.7f, 0.2f, 0.2f, 0.7f, 0);
-		}
-		lockTangente.unlock();
+			if (steigungsgraphZeichnen) {
+				for (int i = 1; i < punkteErsteAbleitung.size(); i++) {
+					try {
+						graphics->DrawLine(-punkteErsteAbleitung.at(i).x, punkteErsteAbleitung.at(i).y, -punkteErsteAbleitung.at(i - 1).x, punkteErsteAbleitung.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
 
-		lockNullstelle.lock();
-		if (nullstellenZeichnen) {
-			for (int i = 0; i < rechnerLibrary.getNullstellen().size(); i++) {
-				try {
-					graphics->DrawCircle(rechnerLibrary.getNullstellen().at(i).x, rechnerLibrary.getNullstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+					}
+					catch (exception e) {}
 				}
-				catch (exception e) {}
 			}
-		}
-		lockNullstelle.unlock();
-		lockExtremstelle.lock();
-		if (maximaMinimaZeichnen) {
-			for (int i = 0; i < rechnerLibrary.getExtremstellen().size(); i++) {
-				try {
-					graphics->DrawCircle(rechnerLibrary.getExtremstellen().at(i).x, rechnerLibrary.getExtremstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+			if (zweiteAbleitungZeichnen) {
+				for (int i = 1; i < punkteZweiteAbleitung.size(); i++) {
+					try {
+						graphics->DrawLine(-punkteZweiteAbleitung.at(i).x, punkteZweiteAbleitung.at(i).y, -punkteZweiteAbleitung.at(i - 1).x, punkteZweiteAbleitung.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+
+					}
+					catch (exception e) {}
 				}
-				catch (exception e) {}
 			}
-		}
-		lockExtremstelle.unlock();
-		lockWendepunkte.lock();
-		if (wendepunkteZeichnen) {
-			for (int i = 0; i < rechnerLibrary.getWendepunkte().size(); i++) {
-				try {
-					graphics->DrawCircle(rechnerLibrary.getWendepunkte().at(i).x, rechnerLibrary.getWendepunkte().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+			if (stammfunktionZeichnen) {
+				for (int i = 1; i < punkteStammfunktion.size(); i++) {
+					try {
+						graphics->DrawLine(-punkteStammfunktion.at(i).x, punkteStammfunktion.at(i).y, -punkteStammfunktion.at(i - 1).x, punkteStammfunktion.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+
+					}
+					catch (exception e) {}
 				}
-				catch (exception e) {}
 			}
-		}
-		if (test) {
-			bool unten = false;
-			if (testx-0.5 < 0) {
-				if (geschw < 0.002) {
-					geschw = 0;
-					unten = true;
+		
+			lockTangente.lock();
+			if (tangenteZeichnen) {
+				for (int i = 1; i < punkteTangente.size(); i++) {
+					try {
+						graphics->DrawLine(-punkteTangente.at(i).x, punkteTangente.at(i).y, -punkteTangente.at(i - 1).x , punkteTangente.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);								
+					}
+					catch (exception e) {}
 				}
-				else {
-					geschw = (-1) * geschw * (0.8);
+			}
+			if (normaleZeichnen) {
+				for (int i = 1; i < punkteNormale.size(); i++) {
+					try {
+						graphics->DrawLine(-punkteNormale.at(i).x, punkteNormale.at(i).y, -punkteNormale.at(i - 1).x, punkteNormale.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+					}
+					catch (exception e) {}
 				}
+			}
+			if (kruemmungsradiusZeichnen) {
+				graphics->DrawCircle(xKreis, yKreis, radius, 0.2f, 0.7f, 0.2f, 0.7f, 0);
+				graphics->DrawCircle(xKreis, yKreis, 0.2, 0.7f, 0.2f, 0.2f, 0.7f, 0);
+			}
+			lockTangente.unlock();
+
+			lockNullstelle.lock();
+			if (nullstellenZeichnen) {
+				for (int i = 0; i < rechnerLibrary.getNullstellen().size(); i++) {
+					try {
+						graphics->DrawCircle(rechnerLibrary.getNullstellen().at(i).x, rechnerLibrary.getNullstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+					}
+					catch (exception e) {}
+				}
+			}
+			lockNullstelle.unlock();
+			lockPolstelle.lock();
+			if (polstellenZeichnen) {
+				vector<Vector2D> tmp = rechnerLibrary.getPolstellen();
+				for (int i = 0; i < rechnerLibrary.getPolstellen().size(); i++) {
+					try {
+						graphics->DrawCircle(rechnerLibrary.getPolstellen().at(i).x, rechnerLibrary.getPolstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+					}
+					catch (exception e) {}
+				}
+			}
+			lockPolstelle.unlock();
+			lockExtremstelle.lock();
+			if (maximaMinimaZeichnen) {
+				for (int i = 0; i < rechnerLibrary.getExtremstellen().size(); i++) {
+					try {
+						graphics->DrawCircle(rechnerLibrary.getExtremstellen().at(i).x, rechnerLibrary.getExtremstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+					}
+					catch (exception e) {}
+				}
+			}
+			lockExtremstelle.unlock();
+			lockWendepunkte.lock();
+			if (wendepunkteZeichnen) {
+				for (int i = 0; i < rechnerLibrary.getWendepunkte().size(); i++) {
+					try {
+						graphics->DrawCircle(rechnerLibrary.getWendepunkte().at(i).x, rechnerLibrary.getWendepunkte().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+					}
+					catch (exception e) {}
+				}
+			}
+			if (test) {
+				bool unten = false;
+				if (testx-0.5 < 0) {
+					if (geschw < 0.002) {
+						geschw = 0;
+						unten = true;
+					}
+					else {
+						geschw = (-1) * geschw * (0.8);
+					}
 				
-			}
+				}
 			
-			clock_t tmpTime = clock();
-			clock_t difftime = tmpTime - testtime;
-			//difftime = 20;
-			double graviFuerVergangeneZeit;
-			if (!unten) {
-				graviFuerVergangeneZeit = gravi * ((double)difftime / 1000);
-				geschw = geschw + graviFuerVergangeneZeit;
-				double tmp = testx - geschw;
-				if (tmp-0.5 > 0) {
-					testx = testx - geschw;
-				}
-				else {
-					testx = 0;
-				}
+				clock_t tmpTime = clock();
+				clock_t difftime = tmpTime - testtime;
+				//difftime = 20;
+				double graviFuerVergangeneZeit;
+				if (!unten) {
+					graviFuerVergangeneZeit = gravi * ((double)difftime / 1000);
+					geschw = geschw + graviFuerVergangeneZeit;
+					double tmp = testx - geschw;
+					if (tmp-0.5 > 0) {
+						testx = testx - geschw;
+					}
+					else {
+						testx = 0;
+					}
 				
+				}
+				graphics->DrawCircle(testy,testx, 0.5, 0.8f, 0.8f, 0.2f, 10.0f, 0);
 			}
-			graphics->DrawCircle(testy,testx, 0.5, 0.8f, 0.8f, 0.2f, 10.0f, 0);
+			testtime = clock();
 		}
-		testtime = clock();
 		lockWendepunkte.unlock();
 		lockFunktion.unlock();
 		lockGraph.lock();
@@ -715,7 +998,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 	funktionAlsText = new LPWSTR();
 	
-    // TODO: Hier Code einfügen.
 
     // Globale Zeichenfolgen initialisieren
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -726,18 +1008,25 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (!InitInstance (hInstance, nCmdShow))   {
         return FALSE;
     }
-	GetWindowText(hEdit, functionBuffer, 20);
-	for (int i = 0; i < 20 && functionBuffer[i]!=0; i++) {
+	GetWindowText(hEdit, functionBuffer, 255);
+	for (int i = 0; i < 255 && functionBuffer[i]!=0; i++) {
 		functionBufferOld[i] = functionBuffer[i];
 	}
+	FunktionAlsVektorSyntaxbaum baumGebrochenRational;
+	rechnerLibrary.splitFuntionBufferGebrochenRational(baumGebrochenRational, functionBuffer);
+	rechnerLibrary.setSyntaxbaum(baumGebrochenRational);
+	FunktionAlsVektorSyntaxbaum gekuerzterBaum = baumGebrochenRational;
+	rechnerLibrary.kuerzeSyntaxbaumGebrochenRational(&gekuerzterBaum);
+	rechnerLibrary.setSyntaxbaumGekuerzt(gekuerzterBaum);
 	
-	rechnerLibrary.setFunctionBuffer(functionBuffer);
+	/*rechnerLibrary.setFunctionBuffer(functionBuffer);
 	lockSyntaxbaum.lock();
 	FunktionSyntaxbaum baum;
-	rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
+	//rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
 	rechnerLibrary.setSyntaxbaum(baum);
-	punkte_berechnen();
-	lockSyntaxbaum.unlock();
+	//punkte_berechnen();*/
+	punkte_berechnenGebrochenRational();
+	//lockSyntaxbaum.unlock(); 
     HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_DIRECT2DPLOTTER));
 	clearScreen();
     MSG msg;
@@ -791,6 +1080,10 @@ void textNullstellenfeldAendern(std::wstring text) {
 	SetWindowText(hNullstellenEditField, text.c_str());
 }
 
+void textPolstellenfeldAendern(std::wstring text) {
+	SetWindowText(hPolstellenEditField, text.c_str());
+}
+
 void textMaximalstellenfeldAendern(std::wstring text) {
 	SetWindowText(hMaximaEditField, text.c_str());
 }
@@ -820,8 +1113,10 @@ void buttonsZeichnenSeite1(HWND hwnd) {
 
 	int bc = 0;
 	EingabefeldCheckbox = CreateWindowW(L"static", L"f(x)=", WS_VISIBLE | WS_CHILD , 10, 9 + (23 * bc), 35, 20, hwnd, NULL, NULL, NULL);
-	hEdit = CreateWindowW(L"edit", L"x^3-5*x+2", WS_VISIBLE | WS_CHILD | WS_BORDER, 45, 9 + (23 * bc), 150, 20, hwnd, NULL, NULL, NULL);
-	hButton = CreateWindowW(L"button", L"ok", WS_VISIBLE | WS_CHILD | WS_BORDER, 200, 9 + (23 * bc++), 30, 20, hwnd, (HMENU)buttonOkPressed, NULL, NULL);
+	hEdit = CreateWindowW(L"edit", L"(x^2+(4*x^3-2*x+5))/(3*x^2+2*(2*x^4+3))", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 45, 9 + (23 * bc), 180, 20, hwnd, NULL, NULL, NULL);
+	//hEdit = CreateWindowW(L"edit", L"(x^3+4)/(x^2-3)", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 45, 9 + (23 * bc), 150, 20, hwnd, NULL, NULL, NULL);
+	//hEdit = CreateWindowW(L"edit", L"x^3-5*x+2", WS_VISIBLE | WS_CHILD | WS_BORDER, 45, 9 + (23 * bc), 150, 20, hwnd, NULL, NULL, NULL);
+	hButton = CreateWindowW(L"button", L"ok", WS_VISIBLE | WS_CHILD | WS_BORDER, 230, 9 + (23 * bc++), 30, 20, hwnd, (HMENU)buttonOkPressed, NULL, NULL);
 	hbuttonCheckboxFunktionsgraphAnzeigen = CreateWindowW(L"button", L"Graph anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxFunktionsgraphAnzeigen, NULL, NULL);
 	CheckDlgButton(hwnd, buttonCheckboxFunktionsgraphAnzeigen, graphZeichnen);
 	hbuttonCheckboxTangente = CreateWindowW(L"button", L"Tangente anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxTangente, NULL, NULL);
@@ -837,14 +1132,18 @@ void buttonsZeichnenSeite1(HWND hwnd) {
 	
 
 
-	hMitternachtButton = CreateWindowW(L"button", L"Nullstellen mit Mitternachtsformel", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonMitternachtsformelPressed, NULL, NULL);
-	hPQButton = CreateWindowW(L"button", L"Nullstellen mit PQ-Formel", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonPQformelPressed, NULL, NULL);
-	hNewtonButton = CreateWindowW(L"button", L"Nullstellen mit Newton Verfahren", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonNewtonVerfahrenPressed, NULL, NULL);
-	hRegulaFalsiButton = CreateWindowW(L"button", L"Nullstellen mit Regula Falsi", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonRegulaFalsiVerfahrenPressed, NULL, NULL);
+	hMitternachtButton = CreateWindowW(L"button", L"Pol/Nullstellen mit Mitternachtsformel", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonMitternachtsformelPressed, NULL, NULL);
+	hPQButton = CreateWindowW(L"button", L"Pol/Nullstellen mit PQ-Formel", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonPQformelPressed, NULL, NULL);
+	hNewtonButton = CreateWindowW(L"button", L"Pol/Nullstellen mit Newton Verfahren", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonNewtonVerfahrenPressed, NULL, NULL);
+	hRegulaFalsiButton = CreateWindowW(L"button", L"Pol/Nullstellen mit Regula Falsi", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonRegulaFalsiVerfahrenPressed, NULL, NULL);
 	hTextNullstellen = CreateWindowW(L"static", L" Nullstellen:", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc), 80, 20, hwnd, NULL, NULL, NULL);
 	hNullstellenEditField = CreateWindowW(L"edit", L"?", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 100, 9 + (23 * bc++), 160, 20, hwnd, NULL, NULL, NULL);
 	hbuttonCheckboxNullstellen = CreateWindowW(L"button", L"Nullstellen anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxNullstellen, NULL, NULL);
 	CheckDlgButton(hwnd, buttonCheckboxNullstellen, nullstellenZeichnen);
+	hTextPolstellen = CreateWindowW(L"static", L" Polstellen:", WS_VISIBLE | WS_CHILD, 10, 9 + (23 * bc), 80, 20, hwnd, NULL, NULL, NULL);
+	hPolstellenEditField = CreateWindowW(L"edit", L"?", WS_VISIBLE | WS_CHILD | WS_BORDER | ES_AUTOHSCROLL, 100, 9 + (23 * bc++), 160, 20, hwnd, NULL, NULL, NULL);
+	hbuttonCheckboxPolstellen = CreateWindowW(L"button", L"Polstellen anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxPolstellen, NULL, NULL);
+	CheckDlgButton(hwnd, buttonCheckboxPolstellen, polstellenZeichnen);
 
 
 
@@ -914,6 +1213,9 @@ void buttonsZeichnenSeite2(HWND hwnd) {
 	DestroyWindow(hTextNullstellen);
 	DestroyWindow(hNullstellenEditField);
 	DestroyWindow(hbuttonCheckboxNullstellen);
+	DestroyWindow(hTextPolstellen);
+	DestroyWindow(hPolstellenEditField);
+	DestroyWindow(hbuttonCheckboxPolstellen);
 
 	DestroyWindow(hTextIntegralgrenzen);
 	DestroyWindow(hTextIntegralLinkeGrenze);
@@ -922,6 +1224,10 @@ void buttonsZeichnenSeite2(HWND hwnd) {
 	DestroyWindow(hIntegraRechteGrenzeEditField);
 	DestroyWindow(hNullstellenEditField);
 	DestroyWindow(hbuttonCheckboxNullstellen);
+
+	DestroyWindow(hbuttonCheckboxWendepunkte); 
+	DestroyWindow(hWendepunkteButton);
+	DestroyWindow(hWendepunkteEditField);
 
 	DestroyWindow(hFlaecheninhaltMitIntegralBerechnen);
 	DestroyWindow(hFlaecheninhaltMitSimpsonBerechnen);
@@ -1044,6 +1350,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 	TCHAR polynomdivisionZaehlerText[255];
 	TCHAR polynomdivisionNennerText[255];
 	FunktionSyntaxbaum baum;
+	FunktionAlsVektorSyntaxbaum baumGebrochenRational;
 	double flaeche;
 	double bogenlaenge;
 	vector<double> functionAlsVectorPolynomdivisionZaehler;
@@ -1123,7 +1430,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 			case 1:
 			{
 				gwtstat = 0;
-				gwtstat = GetWindowText(hEdit, functionBuffer, 20);
+				gwtstat = GetWindowText(hEdit, functionBuffer, 255);
 				bool neueEingabe = false;
 				int zeichenGleich = 0;
 				int laengeAlt = getLaenge(functionBufferOld);
@@ -1131,7 +1438,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				int laengste = 0;
 				int i = 0;
 				if (laengeAlt == laengeNeu) {
-					for (i; i < 20 && functionBuffer[i] != 0; i++) {
+					for (i; i < 255 && functionBuffer[i] != 0; i++) {
 						if (functionBufferOld[i] == functionBuffer[i]) {
 							zeichenGleich++;
 						}
@@ -1146,18 +1453,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				if (neueEingabe) {
 					lockSyntaxbaum.lock();
 					if (gwtstat != 0) {
-						rechnerLibrary.setFunctionBuffer(functionBuffer);
+						/*rechnerLibrary.setFunctionBuffer(functionBuffer);
 						rechnerLibrary.parseFuntionBuffer(baum, functionBuffer);
-						rechnerLibrary.setSyntaxbaum(baum);
+						rechnerLibrary.setSyntaxbaum(baum);*/
+
+						// (x^3+2)/(x^2+4) passt
+						// ((x^3+2)+4*x^3) 
+						// (x^3+2+(4*x^3))
+						// (x^3+2+4*x^2) passt
+						// x^3*(2*x^3)+4
+						// x^3*((x^3+2)+4*x^3) 
+						// ((x^3+2)+4*x^3)*3*x
+						polstellenPunkteBerechnenErledigt = false;
+						rechnerLibrary.splitFuntionBufferGebrochenRational(baumGebrochenRational, functionBuffer);						
+						rechnerLibrary.setSyntaxbaum(baumGebrochenRational);
+						FunktionAlsVektorSyntaxbaum gekuerzterBaum = baumGebrochenRational;
+						rechnerLibrary.kuerzeSyntaxbaumGebrochenRational(&gekuerzterBaum);
+						rechnerLibrary.setSyntaxbaumGekuerzt(gekuerzterBaum);
 					}
 					lockSyntaxbaum.unlock();
 					SetWindowText(hNullstellenEditField, L"?");
+					SetWindowText(hPolstellenEditField, L"?");
 					SetWindowText(hMaximaEditField, L"?");
 					SetWindowText(hMinimaEditField, L"?");
+					SetWindowText(hWendepunkteEditField, L"?");
 					SetWindowText(hFlaecheninhaltAusgebenField, L"?");
+					SetWindowText(hBogenlaengeAusgebenField, L"?");
 					rechnerLibrary.resetVals();
 					lockSyntaxbaum.lock();
-					punkte_berechnen();
+					//punkte_berechnen();
+					punkte_berechnenGebrochenRational();
 					lockSyntaxbaum.unlock();
 					for (int i = 0; i < 20; i++) {
 						functionBufferOld[i] = functionBuffer[i];
@@ -1224,19 +1549,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				}
 				break;
 			case buttonMaximaMinimaPressed:
-				rechnerLibrary.extremstellenBerechnen(); 
+				rechnerLibrary.extremstellenBerechnenGebrochenRational();
 				break;
 			case buttonMitternachtsformelPressed:
-				rechnerLibrary.mitternachtsformel();
+				//rechnerLibrary.mitternachtsformel();
+				rechnerLibrary.mitternachtsformelGebrochenRational();
 				break;
 			case buttonPQformelPressed:
-				rechnerLibrary.pqFormel();
+				rechnerLibrary.pqFormelGebrochenRational();
 				break;
 			case buttonNewtonVerfahrenPressed:
-				rechnerLibrary.newtonVerfahren();
+				rechnerLibrary.newtonVerfahrenGebrochenRational();
+				//rechnerLibrary.newtonVerfahren();
 				break;
 			case buttonRegulaFalsiVerfahrenPressed:
-				rechnerLibrary.regulaFalsiVerfahren();
+				//rechnerLibrary.regulaFalsiVerfahren();
+				rechnerLibrary.regulaFalsiVerfahrenGebrochenRational();
 				break;
 			case buttonCheckboxNullstellen:
 				checkboxChecked = IsDlgButtonChecked(hWnd, buttonCheckboxNullstellen);
@@ -1247,6 +1575,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				else {
 					CheckDlgButton(hWnd, buttonCheckboxNullstellen, BST_CHECKED);
 					nullstellenZeichnen = true;
+				}
+				break;
+			case buttonCheckboxPolstellen:
+				checkboxChecked = IsDlgButtonChecked(hWnd, buttonCheckboxPolstellen);
+				if (checkboxChecked) {
+					CheckDlgButton(hWnd, buttonCheckboxPolstellen, BST_UNCHECKED);
+					polstellenZeichnen = false;
+				}
+				else {
+					CheckDlgButton(hWnd, buttonCheckboxPolstellen, BST_CHECKED);
+					polstellenZeichnen = true;
 				}
 				break;
 			case buttonCheckboxWendepunkte:
@@ -1261,7 +1600,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				}
 				break;
 			case buttonWendepunktePressed:
-				rechnerLibrary.wendepunkteBerechnen();
+				rechnerLibrary.wendepunkteBerechnenGebrochenRational();
 				break; 
 			case buttonCheckboxExtremstellen:
 				checkboxChecked = IsDlgButtonChecked(hWnd, buttonCheckboxExtremstellen);
@@ -1322,7 +1661,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				if (linkeGrenze > rechteGrenze) {
 					MessageBox(hWnd, L"Fehler! Die linke Grenze ist größer als die rechte Grenze. Bitte korrigieren", L"Fehler.", MB_OK);
 				}
-				flaeche = rechnerLibrary.flaecheninhaltMitSimpsonBerechnen(linkeGrenze, rechteGrenze);
+				flaeche = rechnerLibrary.flaecheninhaltMitSimpsonBerechnenGebrochenRational(linkeGrenze, rechteGrenze);
 				beschriftung = std::to_wstring(flaeche);
 				SetWindowText(hFlaecheninhaltAusgebenField, beschriftung.c_str());
 				break;
@@ -1335,7 +1674,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				if (linkeGrenze > rechteGrenze) {
 					MessageBox(hWnd, L"Fehler! Die linke Grenze ist größer als die rechte Grenze. Bitte korrigieren", L"Fehler.", MB_OK);
 				}
-				flaeche = rechnerLibrary.flaecheninhaltMitTrapetzBerechnen(linkeGrenze, rechteGrenze);
+				flaeche = rechnerLibrary.flaecheninhaltMitTrapetzBerechnenGebrochenRational(linkeGrenze, rechteGrenze);
 				beschriftung = std::to_wstring(flaeche);
 				SetWindowText(hFlaecheninhaltAusgebenField, beschriftung.c_str());
 				break;
@@ -1359,7 +1698,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				if (linkeGrenze > rechteGrenze) {
 					MessageBox(hWnd, L"Fehler! Die linke Grenze ist größer als die rechte Grenze. Bitte korrigieren", L"Fehler.", MB_OK);
 				}
-				bogenlaenge = rechnerLibrary.bogenlaengeMitTrapetzBerechnen(linkeGrenze, rechteGrenze);
+				bogenlaenge = rechnerLibrary.bogenlaengeMitTrapetzBerechnenGebrochenRational(linkeGrenze, rechteGrenze);
 				beschriftung = std::to_wstring(bogenlaenge);
 				SetWindowText(hBogenlaengeAusgebenField, beschriftung.c_str());
 				break;
@@ -1385,7 +1724,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 				
 				ErgebnisMitRest = rechnerLibrary.polynomdivision(functionAlsVectorPolynomdivisionZaehler, functionAlsVectorPolynomdivisionNenner);
 				beschriftung = L"";
-				beschriftung = funktionVectorToString(ErgebnisMitRest[0]);
+				//beschriftung = funktionVectorToString(ErgebnisMitRest[0]); todo
 				/*for (int i = ErgebnisMitRest[0].size() - 1; i > -1; i--) {
 					if (i != ErgebnisMitRest[0].size() - 1 && ErgebnisMitRest[0][i] > 0) {
 						beschriftung += '+';
@@ -1534,12 +1873,19 @@ HWND hNullstellenEditField;
 		
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
-            //TODO: Zeichencode, der hdc verwendet, hier einfügen...
             EndPaint(hWnd, &ps);
         }
         break;
     case WM_DESTROY:
+		run = false;
+		punkte.clear();
+		punkteErsteAbleitung.clear();
+		punkteZweiteAbleitung.clear();
+		punkteStammfunktion.clear();
+		punkteTangente.clear();
+		DestroyWindow(hWndEingabe);
         PostQuitMessage(0);
+		
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
