@@ -23,6 +23,7 @@ RechnerLibrary rechnerLibrary;
 const int sizeFunktionBuffer = 255;
 TCHAR functionBuffer[sizeFunktionBuffer] = { 0 };
 TCHAR functionBufferOld[sizeFunktionBuffer] = { 0 };
+Validator validator;
 
 static mutex lockFunktion;
 static mutex lockAuswahlPunkt;
@@ -38,6 +39,7 @@ bool tangenteZeichnen = false;
 bool normaleZeichnen = false;
 bool steigungsgraphZeichnen = false;
 bool zweiteAbleitungZeichnen = false;
+bool dritteAbleitungZeichnen = false;
 bool maximaMinimaZeichnen = false;
 bool wendepunkteZeichnen = false;
 bool nullstellenZeichnen = false;
@@ -67,6 +69,7 @@ int posYAlt = 0;
 vector<Vector2D> punkte;
 vector<Vector2D> punkteErsteAbleitung;
 vector<Vector2D> punkteZweiteAbleitung;
+vector<Vector2D> punkteDritteAbleitung;
 vector<Vector2D> punkteTangente;
 vector<Vector2D> punkteNormale;
 vector<Vector2D> punkteStammfunktion;
@@ -116,6 +119,7 @@ bool bogenlaengeZeichnen = false;*/
 #define buttonWendepunktePressed 26
 #define buttonTestPressed 27
 #define buttonCheckboxPolstellen 28
+#define buttonCheckboxDritteAbleitung 29
 
 HWND hMaximaMinimaButton;
 HWND hMaximaEditField;
@@ -148,6 +152,7 @@ HWND hbuttonCheckboxFunktionsgraphAnzeigen;
 HWND hbuttonCheckboxTangente;
 HWND hbuttonCheckboxsteigungsgraph;
 HWND hbuttonCheckboxZweiteAbleitung;
+HWND hbuttonCheckboxDritteAbleitung;
 HWND hbuttonCheckboxNormale;
 HWND hbuttonCheckboxkruemmungsradius;
 HWND hTestField;
@@ -196,6 +201,36 @@ wstring funktionDritteAbleitungTextGebrochenRationalNenner;
 wstring funktionIntegralTextGebrochenRationalZaehler;
 wstring funktionIntegralTextGebrochenRationalNenner;
 
+struct Farbe {
+	double rot;
+	double gruen;
+	double blau;
+	double alpha;
+};
+
+Farbe farbeAchsenkreuz = { 1,1,1 };
+Farbe farbeKoordinatenZahlen = { 1,1,1 };
+
+
+Farbe farbeFunktion = {1,1,1};
+Farbe farbeErsteAbleitung = { 0.9,0.8,0.8 };
+Farbe farbeZweiteAbleitung = { 0.6,0.7,0.6 };
+Farbe farbeDritteAbleitung = { 0.4,0.4,0.5 };
+Farbe farbeIntegral = { 0.3,0.2,0.3 };
+
+Farbe farbePositionsPunkt = { 0.2,0.2,0.8, 0.6 };
+
+Farbe farbeTangente = { 0.8,0.8,0.8 };
+Farbe farbeNormale = { 0.8,0.8,0.8 };
+Farbe farbeIntegralFläche = { 0.8,0.8,0.8 };
+Farbe farbeBogenlaenge = { 0.8,0.2,0.2 };
+Farbe farbeKrümmungskreis = { 0.2f, 0.7f, 0.2f};
+Farbe farbeKrümmungskreisPunkt = { 0.7f, 0.2f, 0.2f };
+
+Farbe farbePolstelle = { 0.8,0.2,0.3, 0.8 };
+Farbe farbeNullstelle = { 0.8,0.2,0.4, 0.8 };
+Farbe farbeWendepunkt = { 0.8,0.4,0.2, 0.8 };
+Farbe farbeExtremstelle = { 0.8,0.1,0.1, 0.8 };
 
 Graphics* graphics;
 thread* plotterMainThread;
@@ -230,8 +265,6 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    CB_Eingabefeld(HWND, UINT, WPARAM, LPARAM);
 
 thread** threadsZeichnen;
-
-
 
 void zeichneKoordinatenkreuz(int cpuID) {
 	int steps = 10;
@@ -289,7 +322,6 @@ void zeichneKoordinatenkreuz(int cpuID) {
 	}
 }
 
-
 void clearScreen() {
 	lockGraph.lock();
 	if (run) {
@@ -315,9 +347,6 @@ void clearScreen() {
 	}
 	lockGraph.unlock();
 }
-
-
-
 
 void punkte_berechnen() {
 	lockFunktion.lock(); cout << "lockFunction lock in punkte berechnen" << endl;
@@ -483,6 +512,7 @@ void punkte_berechnenGebrochenRational() {
 	punkte.clear();
 	punkteErsteAbleitung.clear();
 	punkteZweiteAbleitung.clear();
+	punkteDritteAbleitung.clear();
 	punkteStammfunktion.clear();
 	rechnerLibrary.setErsteAbleitungGebrochenRational(rechnerLibrary.funktionAbleitenGebrochenRational(rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt()));
 	if (&rechnerLibrary.getErsteAbleitungGebrochenRational() != nullptr) {
@@ -500,9 +530,19 @@ void punkte_berechnenGebrochenRational() {
 		funktionTextGebrochenRationalNenner += rechnerLibrary.getSyntaxbaumGebrochenRational().getRechtesChild()->getInhaltString();
 
 		funktionErsteAbleitungText = L"f'(x)=";
+		funktionErsteAbleitungTextGebrochenRationalZaehler = rechnerLibrary.getErsteAbleitungGebrochenRational().getLinkesChild()->getInhaltString();
+		funktionErsteAbleitungTextGebrochenRationalNenner = rechnerLibrary.getErsteAbleitungGebrochenRational().getRechtesChild()->getInhaltString();
 
 		funktionZweiteAbleitungText = L"f''(x)=";
+		funktionZweiteAbleitungTextGebrochenRationalZaehler = rechnerLibrary.getZweiteAbleitungGebrochenRational().getLinkesChild()->getInhaltString();
+		funktionZweiteAbleitungTextGebrochenRationalNenner = rechnerLibrary.getZweiteAbleitungGebrochenRational().getRechtesChild()->getInhaltString();
+
+
 		funktionDritteAbleitungText = L"f'''(x)=";
+		funktionDritteAbleitungTextGebrochenRationalZaehler = rechnerLibrary.getDritteAbleitungGebrochenRational().getLinkesChild()->getInhaltString();
+		funktionDritteAbleitungTextGebrochenRationalNenner = rechnerLibrary.getDritteAbleitungGebrochenRational().getRechtesChild()->getInhaltString();
+
+
 		funktionIntegralText = L"F(x)=";
 	}
 	else {
@@ -518,32 +558,11 @@ void punkte_berechnenGebrochenRational() {
 		funktionIntegralText += funktionVectorToString(rechnerLibrary.getStammfunktionAlsVector());
 	}
 
-
-
-
-	/*rechnerLibrary.setZweiteAbleitung(rechnerLibrary.funktionAbleiten(rechnerLibrary.getErsteAbleitung()));
-	rechnerLibrary.setDritteAbleitung(rechnerLibrary.funktionAbleiten(rechnerLibrary.getZweiteAbleitung()));
-	rechnerLibrary.integrieren(rechnerLibrary.getFunktionAlsVector());
-
-	funktionText = L"f(x)=";
-	funktionText += funktionVectorToString(rechnerLibrary.getFunktionAlsVector());
-
-	funktionErsteAbleitungText = L"f '(x)=";
-	funktionErsteAbleitungText += funktionVectorToString(rechnerLibrary.getErsteAbleitung());
-	funktionZweiteAbleitungText = L"f ''(x)=";
-	funktionZweiteAbleitungText += funktionVectorToString(rechnerLibrary.getZweiteAbleitung());
-	funktionDritteAbleitungText = L"f '''(x)=";
-	funktionDritteAbleitungText += funktionVectorToString(rechnerLibrary.getDritteAbleitung());
-	funktionIntegralText = L"F(x)=";
-	funktionIntegralText += funktionVectorToString(rechnerLibrary.getStammfunktionAlsVector());*/
-
-
-
 	double xOld = 0;
 	double yOld = 0;
 	bool round2 = false;
 	double x = 0, y = 0;
-	double x2 = 0, yErsteAbleitung = 0, yZweiteAbleitung = 0;
+	double x2 = 0, yErsteAbleitung = 0, yZweiteAbleitung = 0, yDritteAbleitung = 0;
 	double yStammfunktion = 0;
 	double tmp = 0;
 	double step = 0.2;
@@ -554,10 +573,22 @@ void punkte_berechnenGebrochenRational() {
 		von = -100;
 		bis = 100;
 	}
-	vector<Vector2D>polstellenPunkteBerechnen;
+	vector<Vector2D>kurvenDiskusionsPunktePole;
+	vector<Vector2D>kurvenDiskusionsPunkteRest;
 	if (rechnerLibrary.getPolstellen().size() < 1&& polstellenPunkteBerechnenErledigt==false) {
 		rechnerLibrary.regulaFalsiVerfahrenGebrochenRational();
-		polstellenPunkteBerechnen = rechnerLibrary.getPolstellen();
+		rechnerLibrary.extremstellenBerechnenGebrochenRational();
+		rechnerLibrary.wendepunkteBerechnenGebrochenRational();
+		kurvenDiskusionsPunktePole = rechnerLibrary.getPolstellen();
+		for (int i = 0; i < rechnerLibrary.getNullstellen().size(); i++) {
+			kurvenDiskusionsPunkteRest.push_back(rechnerLibrary.getNullstellen()[i]);
+		}
+		for (int i = 0; i < rechnerLibrary.getWendepunkte().size(); i++) {
+			kurvenDiskusionsPunkteRest.push_back(rechnerLibrary.getWendepunkte()[i]);
+		}
+		for (int i = 0; i < rechnerLibrary.getExtremstellen().size(); i++) {
+			kurvenDiskusionsPunkteRest.push_back(rechnerLibrary.getExtremstellen()[i]);
+		}
 		polstellenPunkteBerechnenErledigt = true;
 		rechnerLibrary.getPolstellen().clear();
 		rechnerLibrary.getNullstellen().clear();
@@ -567,7 +598,7 @@ void punkte_berechnenGebrochenRational() {
 
 	}
 	else {
-		polstellenPunkteBerechnen = rechnerLibrary.getPolstellen();
+		kurvenDiskusionsPunktePole = rechnerLibrary.getPolstellen();
 		
 	}
 	for (double i = von; i < bis; i += step) {
@@ -575,25 +606,32 @@ void punkte_berechnenGebrochenRational() {
 		y = rechnerLibrary.getPunkt(i, &rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt());
 		yErsteAbleitung = rechnerLibrary.getPunkt(i, &rechnerLibrary.getErsteAbleitungGebrochenRational());
 		yZweiteAbleitung = rechnerLibrary.getPunkt(i, &rechnerLibrary.getZweiteAbleitungGebrochenRational());
+		yDritteAbleitung = rechnerLibrary.getPunkt(i, &rechnerLibrary.getDritteAbleitungGebrochenRational());
 		/*yErsteAbleitung = rechnerLibrary.f(i, &rechnerLibrary.getErsteAbleitungAlsVector());
 		yZweiteAbleitung = rechnerLibrary.f(i, &rechnerLibrary.getZweiteAbleitung());
 		yStammfunktion = rechnerLibrary.f(i, &rechnerLibrary.getStammfunktionAlsVector());*/
 		//y = i*i*(i - 4) / (i + 4);
 		if (y < 500 && y > -500) {
 			if (rechnerLibrary.getSyntaxbaumGebrochenRationalGekürzt().getInhaltTChar() == '/') {
-				
-				for (int j = 0; j < polstellenPunkteBerechnen.size(); j++) {
-					if (polstellenPunkteBerechnen[j].x < 0) {
-						if ((i > (polstellenPunkteBerechnen[j].x - 0.2)) && (i < (polstellenPunkteBerechnen[j].x + 0.2))) {
+				for (int j = 0; j < kurvenDiskusionsPunkteRest.size(); j++) {
+					if ((i >(kurvenDiskusionsPunkteRest[j].x - 1.5)) && (i < (kurvenDiskusionsPunkteRest[j].x + 1.5))) {
+						step = 0.02;
+					}else {
+						step = 0.2;
+					}
+				}
+				for (int j = 0; j < kurvenDiskusionsPunktePole.size(); j++) {
+					if (kurvenDiskusionsPunktePole[j].x < 0) {
+						if ((i > (kurvenDiskusionsPunktePole[j].x - 0.2)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.2))) {
 							step = 0.1;
-							if ((i > (polstellenPunkteBerechnen[j].x - 0.1)) && (i < (polstellenPunkteBerechnen[j].x + 0.1))) {
+							if ((i > (kurvenDiskusionsPunktePole[j].x - 0.1)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.1))) {
 								step = 0.05;
-								if ((i > (polstellenPunkteBerechnen[j].x - 0.05)) && (i < (polstellenPunkteBerechnen[j].x + 0.05))) {
+								if ((i > (kurvenDiskusionsPunktePole[j].x - 0.05)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.05))) {
 									step = 0.02;
-									if ((i > (polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+									if ((i > (kurvenDiskusionsPunktePole[j].x - 0.02)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.02))) {
 										step = 0.001;
 
-										if ((i > (polstellenPunkteBerechnen[j].x - 0.001)) && (i < (polstellenPunkteBerechnen[j].x + 0.001))) {
+										if ((i > (kurvenDiskusionsPunktePole[j].x - 0.001)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.001))) {
 											step = 0.0001;
 										}
 									}
@@ -604,7 +642,7 @@ void punkte_berechnenGebrochenRational() {
 							double step = 0.2;
 							if (vergroesserung > 20) {
 								step = 0.02;
-								if ((i >(polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+								if ((i >(kurvenDiskusionsPunktePole[j].x - 0.02)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.02))) {
 									step = 0.001;
 									
 									
@@ -613,15 +651,15 @@ void punkte_berechnenGebrochenRational() {
 						}
 					}
 					else {
-						if ((i >(polstellenPunkteBerechnen[j].x - 0.2)) && (i < (polstellenPunkteBerechnen[j].x + 0.2))) {
+						if ((i >(kurvenDiskusionsPunktePole[j].x - 0.2)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.2))) {
 							step = 0.1;
-							if ((i >(polstellenPunkteBerechnen[j].x - 0.1)) && (i < (polstellenPunkteBerechnen[j].x + 0.1))) {
+							if ((i >(kurvenDiskusionsPunktePole[j].x - 0.1)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.1))) {
 								step = 0.05;
-								if ((i >(polstellenPunkteBerechnen[j].x - 0.05)) && (i < (polstellenPunkteBerechnen[j].x + 0.05))) {
+								if ((i >(kurvenDiskusionsPunktePole[j].x - 0.05)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.05))) {
 									step = 0.02;
-									if ((i >(polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+									if ((i >(kurvenDiskusionsPunktePole[j].x - 0.02)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.02))) {
 										step = 0.001;
-										if ((i >(polstellenPunkteBerechnen[j].x - 0.001)) && (i < (polstellenPunkteBerechnen[j].x + 0.001))) {
+										if ((i >(kurvenDiskusionsPunktePole[j].x - 0.001)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.001))) {
 											step = 0.0001;
 										}
 									}
@@ -632,14 +670,14 @@ void punkte_berechnenGebrochenRational() {
 							double step = 0.2;
 							if (vergroesserung > 20) {
 								step = 0.02;
-								if ((i >(polstellenPunkteBerechnen[j].x - 0.02)) && (i < (polstellenPunkteBerechnen[j].x + 0.02))) {
+								if ((i >(kurvenDiskusionsPunktePole[j].x - 0.02)) && (i < (kurvenDiskusionsPunktePole[j].x + 0.02))) {
 									step = 0.001;
 								}
 							}
 						}
 					}
-					
 				}
+				
 			}
 			if (round2) {
 				Vector2D p;
@@ -664,6 +702,15 @@ void punkte_berechnenGebrochenRational() {
 				punkteZweiteAbleitung.push_back(p2);
 			}
 		}
+		if (yDritteAbleitung < 500 && yDritteAbleitung > -500) {
+			if (round2) {
+				Vector2D p2;
+				p2.x = i;
+				p2.y = yDritteAbleitung;
+				punkteDritteAbleitung.push_back(p2);
+			}
+		}
+
 		/*if (yStammfunktion < 500 && yStammfunktion > -500) {
 			if (round2) {
 				Vector2D p2;
@@ -749,6 +796,16 @@ void zeichneTangenteAmPunkt(double hoehe, double steigung) {
 
 int counter = 0;
 
+int zeichenZaehler(wstring text) {
+	int anzahl = 0;
+	int i = 0;
+	while (text[i] != 0) {
+		anzahl++;
+		i++;
+	}
+	return anzahl;
+}
+
 void plotter_thread() {
 	graphics->SetRotationsWinkel(180);
 
@@ -765,7 +822,7 @@ void plotter_thread() {
 		}
 		lockGraph.unlock();
 
-		if (vergroesserung > 20) {
+		/*if (vergroesserung > 20) {
 			if (counter == 0) {
 				lockSyntaxbaum.lock();
 				FunktionSyntaxbaum baum;
@@ -790,40 +847,76 @@ void plotter_thread() {
 				lockSyntaxbaum.unlock();
 				counter--;
 			}
-		}
+		}*/
 		lockFunktion.lock();
-		graphics->DrawCircle(-aktuellerPunktAmGraph.x, aktuellerPunktAmGraph.y, 1, 0.2f, 0.2f, 0.7f, 1.0f,0);
+		graphics->DrawCircle(-aktuellerPunktAmGraph.x, aktuellerPunktAmGraph.y, 1, farbePositionsPunkt.rot, farbePositionsPunkt.gruen, farbePositionsPunkt.blau, farbePositionsPunkt.alpha,0);
 		if (rechnerLibrary.getSyntaxbaumGebrochenRational().getInhaltTChar() == '/') {
-			int zeichenCounterZaehler = 0;
-			int zeichenCounterNenner = 0;
-			int maxZeichenCounter = 0;
-			int i = 0;
-			while (funktionTextGebrochenRationalZaehler[i] != 0) {
-				zeichenCounterZaehler++;
-				i++;
-			}
-			i = 0;
-			while (funktionTextGebrochenRationalNenner[i] != 0) {
-				zeichenCounterNenner++;
-				i++;
-			}
-			maxZeichenCounter = zeichenCounterZaehler > zeichenCounterNenner ? zeichenCounterZaehler : zeichenCounterNenner;
-			graphics->DrawTextS(5, 20, 40, 40, funktionText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(60, 10, ((double)maxZeichenCounter)*12, 40, funktionTextGebrochenRationalZaehler, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(60, 33, ((double)maxZeichenCounter)*12, 40, funktionTextGebrochenRationalNenner, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawLineS(60, 30, ((double)maxZeichenCounter)*12, 30, 0.8f, 0.8f, 0.8f, 10.0f,0);
+			double schriftWeiteInPixel = 8.6;
+			double schrittweiteZwischenDenFunktionen = 50;
+			int zeichenCounterFunktionZaehler = 0;
+			int zeichenCounterFunktionNenner = 0;
+			int maxZeichenFunktionCounter = 0;
+			zeichenCounterFunktionZaehler=zeichenZaehler(funktionTextGebrochenRationalZaehler);
+			zeichenCounterFunktionNenner = zeichenZaehler(funktionTextGebrochenRationalNenner);
+			maxZeichenFunktionCounter = zeichenCounterFunktionZaehler > zeichenCounterFunktionNenner ? zeichenCounterFunktionZaehler : zeichenCounterFunktionNenner;
+			graphics->DrawTextS(5, 20, 45, 40, funktionText, false, false, farbeFunktion.rot, farbeFunktion.gruen, farbeFunktion.blau, 10.0, 0);
+			graphics->DrawTextS(60, 10, ((double)maxZeichenFunktionCounter)*schriftWeiteInPixel, 40, funktionTextGebrochenRationalZaehler, false, false, farbeFunktion.rot, farbeFunktion.gruen, farbeFunktion.blau, 10.0, 0);
+			graphics->DrawTextS(60, 33, ((double)maxZeichenFunktionCounter)*schriftWeiteInPixel, 40, funktionTextGebrochenRationalNenner, false, false, farbeFunktion.rot, farbeFunktion.gruen, farbeFunktion.blau, 10.0, 0);
+			graphics->DrawLineS(60, 30, 60+((double)maxZeichenFunktionCounter)*schriftWeiteInPixel, 30, farbeFunktion.rot, farbeFunktion.gruen, farbeFunktion.blau, 10.0f,0);
 
-			graphics->DrawTextS(10, 60, 400, 20, funktionErsteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(10, 100, 400, 20, funktionZweiteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(10, 150, 400, 20, funktionDritteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(10, 200, 400, 20, funktionIntegralText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+
+
+
+			int zeichenCounterFunktionErsteAbleitungZaehler = 0;
+			int zeichenCounterFunktionErsteAbleitungNenner = 0;
+			int maxZeichenFunktionErsteAbleitungCounter = 0;
+			zeichenCounterFunktionErsteAbleitungZaehler = zeichenZaehler(funktionErsteAbleitungTextGebrochenRationalZaehler);
+			zeichenCounterFunktionErsteAbleitungNenner = zeichenZaehler(funktionErsteAbleitungTextGebrochenRationalNenner);
+			maxZeichenFunktionErsteAbleitungCounter = zeichenCounterFunktionErsteAbleitungZaehler > zeichenCounterFunktionErsteAbleitungNenner ? zeichenCounterFunktionErsteAbleitungZaehler : zeichenCounterFunktionErsteAbleitungNenner;
+
+			graphics->DrawTextS(5, 20+ schrittweiteZwischenDenFunktionen, 45, 20, funktionErsteAbleitungText, false, false, farbeErsteAbleitung.rot, farbeErsteAbleitung.gruen, farbeErsteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(60, 10 + schrittweiteZwischenDenFunktionen, ((double)maxZeichenFunktionErsteAbleitungCounter) * schriftWeiteInPixel, 40, funktionErsteAbleitungTextGebrochenRationalZaehler, false, false, farbeErsteAbleitung.rot, farbeErsteAbleitung.gruen, farbeErsteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(60, 33 + schrittweiteZwischenDenFunktionen, ((double)maxZeichenFunktionErsteAbleitungCounter) * schriftWeiteInPixel, 40, funktionErsteAbleitungTextGebrochenRationalNenner, false, false, farbeErsteAbleitung.rot, farbeErsteAbleitung.gruen, farbeErsteAbleitung.blau, 10.0, 0);
+			graphics->DrawLineS(60, 30 + schrittweiteZwischenDenFunktionen, 60 + ((double)maxZeichenFunktionErsteAbleitungCounter) * schriftWeiteInPixel, 30 + schrittweiteZwischenDenFunktionen, farbeErsteAbleitung.rot, farbeErsteAbleitung.gruen, farbeErsteAbleitung.blau, 10.0f, 0);
+
+
+
+
+			int zeichenCounterFunktionZweiteAbleitungZaehler = 0;
+			int zeichenCounterFunktionZweiteAbleitungNenner = 0;
+			int maxZeichenFunktionZweiteAbleitungCounter = 0;
+			zeichenCounterFunktionZweiteAbleitungZaehler = zeichenZaehler(funktionZweiteAbleitungTextGebrochenRationalZaehler);
+			zeichenCounterFunktionZweiteAbleitungNenner = zeichenZaehler(funktionZweiteAbleitungTextGebrochenRationalNenner);
+			maxZeichenFunktionZweiteAbleitungCounter = zeichenCounterFunktionZweiteAbleitungZaehler > zeichenCounterFunktionZweiteAbleitungNenner ? zeichenCounterFunktionZweiteAbleitungZaehler : zeichenCounterFunktionZweiteAbleitungNenner;
+
+			graphics->DrawTextS(5, 20 + schrittweiteZwischenDenFunktionen*2, 45, 20, funktionZweiteAbleitungText, false, false, farbeZweiteAbleitung.rot, farbeZweiteAbleitung.gruen, farbeZweiteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(60, 10 + schrittweiteZwischenDenFunktionen * 2, ((double)maxZeichenFunktionZweiteAbleitungCounter) * schriftWeiteInPixel, 40, funktionZweiteAbleitungTextGebrochenRationalZaehler, false, false, farbeZweiteAbleitung.rot, farbeZweiteAbleitung.gruen, farbeZweiteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(60, 33 + schrittweiteZwischenDenFunktionen * 2, ((double)maxZeichenFunktionZweiteAbleitungCounter) * schriftWeiteInPixel, 40, funktionZweiteAbleitungTextGebrochenRationalNenner, false, false, farbeZweiteAbleitung.rot, farbeZweiteAbleitung.gruen, farbeZweiteAbleitung.blau, 10.0, 0);
+			graphics->DrawLineS(60, 30 + schrittweiteZwischenDenFunktionen * 2, 60 + ((double)maxZeichenFunktionZweiteAbleitungCounter) * schriftWeiteInPixel, 30 + schrittweiteZwischenDenFunktionen * 2, farbeZweiteAbleitung.rot, farbeZweiteAbleitung.gruen, farbeZweiteAbleitung.blau, 10.0f, 0);
+
+
+
+
+			int zeichenCounterFunktionDritteAbleitungZaehler = 0;
+			int zeichenCounterFunktionDritteAbleitungNenner = 0;
+			int maxZeichenFunktionDritteAbleitungCounter = 0;
+			zeichenCounterFunktionDritteAbleitungZaehler = zeichenZaehler(funktionDritteAbleitungTextGebrochenRationalZaehler);
+			zeichenCounterFunktionDritteAbleitungNenner = zeichenZaehler(funktionDritteAbleitungTextGebrochenRationalNenner);
+			maxZeichenFunktionDritteAbleitungCounter = zeichenCounterFunktionDritteAbleitungZaehler > zeichenCounterFunktionDritteAbleitungNenner ? zeichenCounterFunktionDritteAbleitungZaehler : zeichenCounterFunktionDritteAbleitungNenner;
+
+			graphics->DrawTextS(5, 20 + schrittweiteZwischenDenFunktionen * 3, 45, 20, funktionDritteAbleitungText, false, false, farbeDritteAbleitung.rot, farbeDritteAbleitung.gruen, farbeDritteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(60, 10 + schrittweiteZwischenDenFunktionen * 3, ((double)maxZeichenFunktionDritteAbleitungCounter) * schriftWeiteInPixel, 40, funktionDritteAbleitungTextGebrochenRationalZaehler, false, false, farbeDritteAbleitung.rot, farbeDritteAbleitung.gruen, farbeDritteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(60, 33 + schrittweiteZwischenDenFunktionen * 3, ((double)maxZeichenFunktionDritteAbleitungCounter) * schriftWeiteInPixel, 40, funktionDritteAbleitungTextGebrochenRationalNenner, false, false, farbeDritteAbleitung.rot, farbeDritteAbleitung.gruen, farbeDritteAbleitung.blau, 10.0, 0);
+			graphics->DrawLineS(60, 30 + schrittweiteZwischenDenFunktionen * 3, 60 + ((double)maxZeichenFunktionDritteAbleitungCounter) * schriftWeiteInPixel, 30 + schrittweiteZwischenDenFunktionen * 3, farbeDritteAbleitung.rot, farbeDritteAbleitung.gruen, farbeDritteAbleitung.blau, 10.0f, 0);
+
+			graphics->DrawTextS(5, 20 + schrittweiteZwischenDenFunktionen * 4, 45, 20, funktionIntegralText, false, false, farbeIntegral.rot, farbeIntegral.gruen, farbeIntegral.blau, 10.0, 0);
 		}
 		else {
-			graphics->DrawTextS(10, 20, 400, 40, funktionText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(10, 60, 400, 20, funktionErsteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(10, 100, 400, 20, funktionZweiteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(10, 150, 400, 20, funktionDritteAbleitungText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
-			graphics->DrawTextS(10, 200, 400, 20, funktionIntegralText, false, false, 0.8, 0.8, 0.8, 10.0, 0);
+			graphics->DrawTextS(10, 20, 400, 40, funktionText, false, false, farbeFunktion.rot, farbeFunktion.gruen, farbeFunktion.blau, 10.0, 0);
+			graphics->DrawTextS(10, 60, 400, 20, funktionErsteAbleitungText, false, false, farbeErsteAbleitung.rot, farbeErsteAbleitung.gruen, farbeErsteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(10, 100, 400, 20, funktionZweiteAbleitungText, false, false, farbeZweiteAbleitung.rot, farbeZweiteAbleitung.gruen, farbeZweiteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(10, 150, 400, 20, funktionDritteAbleitungText, false, false, farbeDritteAbleitung.rot, farbeDritteAbleitung.gruen, farbeDritteAbleitung.blau, 10.0, 0);
+			graphics->DrawTextS(10, 200, 400, 20, funktionIntegralText, false, false, farbeIntegral.rot, farbeIntegral.gruen, farbeIntegral.blau, 10.0, 0);
 		}
 
 		/*for (int i = 0; i < graphics->getMaxCPU(); i++) {
@@ -838,17 +931,17 @@ void plotter_thread() {
 
 						}
 						else {
-							graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i - 1).x, punkte.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+							graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i - 1).x, punkte.at(i - 1).y, farbeFunktion.rot, farbeFunktion.gruen, farbeFunktion.blau, 10.0f, 0);
 						}
 
 						if (bogenlaengeZeichnen) {
 							if (punkte.at(i).x > linkeGrenze&&punkte.at(i).x < rechteGrenze) {
-								graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i - 1).x, punkte.at(i - 1).y, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+								graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i - 1).x, punkte.at(i - 1).y, farbeBogenlaenge.rot, farbeBogenlaenge.gruen, farbeBogenlaenge.blau, 10.0f, 0);
 							}
 						}
 						if (flacheninhaltZeichnen) {
 							if ((-punkte.at(i).x) < (-linkeGrenze) && (-punkte.at(i).x) > (-rechteGrenze)) {
-								graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i).x, 0, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+								graphics->DrawLine(-punkte.at(i).x, punkte.at(i).y, -punkte.at(i).x, 0, farbeIntegralFläche.rot, farbeIntegralFläche.gruen, farbeIntegralFläche.blau, 10.0f, 0);
 							}
 						}
 					}
@@ -859,7 +952,7 @@ void plotter_thread() {
 			if (steigungsgraphZeichnen) {
 				for (int i = 1; i < punkteErsteAbleitung.size(); i++) {
 					try {
-						graphics->DrawLine(-punkteErsteAbleitung.at(i).x, punkteErsteAbleitung.at(i).y, -punkteErsteAbleitung.at(i - 1).x, punkteErsteAbleitung.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+						graphics->DrawLine(-punkteErsteAbleitung.at(i).x, punkteErsteAbleitung.at(i).y, -punkteErsteAbleitung.at(i - 1).x, punkteErsteAbleitung.at(i - 1).y, farbeErsteAbleitung.rot, farbeErsteAbleitung.gruen, farbeErsteAbleitung.blau, 10.0f, 0);
 
 					}
 					catch (exception e) {}
@@ -868,7 +961,16 @@ void plotter_thread() {
 			if (zweiteAbleitungZeichnen) {
 				for (int i = 1; i < punkteZweiteAbleitung.size(); i++) {
 					try {
-						graphics->DrawLine(-punkteZweiteAbleitung.at(i).x, punkteZweiteAbleitung.at(i).y, -punkteZweiteAbleitung.at(i - 1).x, punkteZweiteAbleitung.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+						graphics->DrawLine(-punkteZweiteAbleitung.at(i).x, punkteZweiteAbleitung.at(i).y, -punkteZweiteAbleitung.at(i - 1).x, punkteZweiteAbleitung.at(i - 1).y, farbeZweiteAbleitung.rot, farbeZweiteAbleitung.gruen, farbeZweiteAbleitung.blau, 10.0f, 0);
+
+					}
+					catch (exception e) {}
+				}
+			}
+			if (dritteAbleitungZeichnen) {
+				for (int i = 1; i < punkteDritteAbleitung.size(); i++) {
+					try {
+						graphics->DrawLine(-punkteDritteAbleitung.at(i).x, punkteDritteAbleitung.at(i).y, -punkteDritteAbleitung.at(i - 1).x, punkteDritteAbleitung.at(i - 1).y, farbeDritteAbleitung.rot, farbeDritteAbleitung.gruen, farbeDritteAbleitung.blau, 10.0f, 0);
 
 					}
 					catch (exception e) {}
@@ -877,7 +979,7 @@ void plotter_thread() {
 			if (stammfunktionZeichnen) {
 				for (int i = 1; i < punkteStammfunktion.size(); i++) {
 					try {
-						graphics->DrawLine(-punkteStammfunktion.at(i).x, punkteStammfunktion.at(i).y, -punkteStammfunktion.at(i - 1).x, punkteStammfunktion.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+						graphics->DrawLine(-punkteStammfunktion.at(i).x, punkteStammfunktion.at(i).y, -punkteStammfunktion.at(i - 1).x, punkteStammfunktion.at(i - 1).y, farbeIntegral.rot, farbeIntegral.gruen, farbeIntegral.blau, 10.0f, 0);
 
 					}
 					catch (exception e) {}
@@ -888,7 +990,7 @@ void plotter_thread() {
 			if (tangenteZeichnen) {
 				for (int i = 1; i < punkteTangente.size(); i++) {
 					try {
-						graphics->DrawLine(-punkteTangente.at(i).x, punkteTangente.at(i).y, -punkteTangente.at(i - 1).x , punkteTangente.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);								
+						graphics->DrawLine(-punkteTangente.at(i).x, punkteTangente.at(i).y, -punkteTangente.at(i - 1).x , punkteTangente.at(i - 1).y, farbeTangente.rot, farbeTangente.gruen, farbeTangente.blau, 10.0f, 0);
 					}
 					catch (exception e) {}
 				}
@@ -896,14 +998,14 @@ void plotter_thread() {
 			if (normaleZeichnen) {
 				for (int i = 1; i < punkteNormale.size(); i++) {
 					try {
-						graphics->DrawLine(-punkteNormale.at(i).x, punkteNormale.at(i).y, -punkteNormale.at(i - 1).x, punkteNormale.at(i - 1).y, 0.8f, 0.8f, 0.8f, 10.0f, 0);
+						graphics->DrawLine(-punkteNormale.at(i).x, punkteNormale.at(i).y, -punkteNormale.at(i - 1).x, punkteNormale.at(i - 1).y, farbeNormale.rot, farbeNormale.gruen, farbeNormale.blau, 10.0f, 0);
 					}
 					catch (exception e) {}
 				}
 			}
 			if (kruemmungsradiusZeichnen) {
-				graphics->DrawCircle(xKreis, yKreis, radius, 0.2f, 0.7f, 0.2f, 0.7f, 0);
-				graphics->DrawCircle(xKreis, yKreis, 0.2, 0.7f, 0.2f, 0.2f, 0.7f, 0);
+				graphics->DrawCircle(xKreis, yKreis, radius, farbeKrümmungskreis.rot, farbeKrümmungskreis.gruen, farbeKrümmungskreis.blau, 0.7f, 0);
+				graphics->DrawCircle(xKreis, yKreis, 0.2, farbeKrümmungskreisPunkt.rot, farbeKrümmungskreisPunkt.gruen, farbeKrümmungskreisPunkt.blau, 0.7f, 0);
 			}
 			lockTangente.unlock();
 
@@ -911,7 +1013,7 @@ void plotter_thread() {
 			if (nullstellenZeichnen) {
 				for (int i = 0; i < rechnerLibrary.getNullstellen().size(); i++) {
 					try {
-						graphics->DrawCircle(rechnerLibrary.getNullstellen().at(i).x, rechnerLibrary.getNullstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+						graphics->DrawCircle(rechnerLibrary.getNullstellen().at(i).x, rechnerLibrary.getNullstellen().at(i).y, 0.5, farbeNullstelle.rot, farbeNullstelle.gruen, farbeNullstelle.blau, farbeNullstelle.alpha, 0);
 					}
 					catch (exception e) {}
 				}
@@ -922,7 +1024,7 @@ void plotter_thread() {
 				vector<Vector2D> tmp = rechnerLibrary.getPolstellen();
 				for (int i = 0; i < rechnerLibrary.getPolstellen().size(); i++) {
 					try {
-						graphics->DrawCircle(rechnerLibrary.getPolstellen().at(i).x, rechnerLibrary.getPolstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+						graphics->DrawCircle(rechnerLibrary.getPolstellen().at(i).x, rechnerLibrary.getPolstellen().at(i).y, 0.5, farbePolstelle.rot, farbePolstelle.gruen, farbePolstelle.blau, farbePolstelle.alpha, 0);
 					}
 					catch (exception e) {}
 				}
@@ -932,7 +1034,7 @@ void plotter_thread() {
 			if (maximaMinimaZeichnen) {
 				for (int i = 0; i < rechnerLibrary.getExtremstellen().size(); i++) {
 					try {
-						graphics->DrawCircle(rechnerLibrary.getExtremstellen().at(i).x, rechnerLibrary.getExtremstellen().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+						graphics->DrawCircle(rechnerLibrary.getExtremstellen().at(i).x, rechnerLibrary.getExtremstellen().at(i).y, 0.5, farbeExtremstelle.rot, farbeExtremstelle.gruen, farbeExtremstelle.blau, farbeExtremstelle.alpha, 0);
 					}
 					catch (exception e) {}
 				}
@@ -942,7 +1044,7 @@ void plotter_thread() {
 			if (wendepunkteZeichnen) {
 				for (int i = 0; i < rechnerLibrary.getWendepunkte().size(); i++) {
 					try {
-						graphics->DrawCircle(rechnerLibrary.getWendepunkte().at(i).x, rechnerLibrary.getWendepunkte().at(i).y, 0.5, 0.8f, 0.2f, 0.2f, 10.0f, 0);
+						graphics->DrawCircle(rechnerLibrary.getWendepunkte().at(i).x, rechnerLibrary.getWendepunkte().at(i).y, 0.5, farbeWendepunkt.rot, farbeWendepunkt.gruen, farbeWendepunkt.blau, farbeWendepunkt.alpha, 0);
 					}
 					catch (exception e) {}
 				}
@@ -1125,6 +1227,8 @@ void buttonsZeichnenSeite1(HWND hwnd) {
 	CheckDlgButton(hwnd, buttonCheckboxsteigungsgraph, steigungsgraphZeichnen);
 	hbuttonCheckboxZweiteAbleitung = CreateWindowW(L"button", L"Zweite Ableitung anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxZweiteAbleitung, NULL, NULL);
 	CheckDlgButton(hwnd, buttonCheckboxZweiteAbleitung, zweiteAbleitungZeichnen);
+	hbuttonCheckboxDritteAbleitung = CreateWindowW(L"button", L"Dritte Ableitung anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxDritteAbleitung, NULL, NULL);
+	CheckDlgButton(hwnd, buttonCheckboxDritteAbleitung, dritteAbleitungZeichnen);
 	hbuttonCheckboxNormale = CreateWindowW(L"button", L"Normale anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxNormale, NULL, NULL);
 	CheckDlgButton(hwnd, buttonCheckboxNormale, normaleZeichnen);
 	hbuttonCheckboxkruemmungsradius = CreateWindowW(L"button", L"Krümmungskreis anzeigen", WS_VISIBLE | WS_CHILD | BS_CHECKBOX, 10, 9 + (23 * bc++), 250, 20, hwnd, (HMENU)buttonCheckboxkruemmungsradius, NULL, NULL);
@@ -1451,6 +1555,35 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 					neueEingabe = true;
 				}
 				if (neueEingabe) {
+					if (!validator.checkAufFalscheSymbole(functionBuffer)) {
+						MessageBox(
+							NULL,
+							(LPCWSTR)L"Der Ausdruck enthält ein falsches Symbol. Erlaubt sind +,-,*,/,^,(,),0-9. \r\nBsp: (x^2+3*x)/(x^2-3)\r\nBitte geben Sie einen korrekten Ausdruck ein.",
+							(LPCWSTR)L"Fehler",
+							MB_ICONWARNING
+						);
+						break;
+					}
+
+					if (!validator.checkKlammernKorrekt(functionBuffer)) {
+						MessageBox(
+							NULL,
+							(LPCWSTR)L"Klammer Fehler! Prüfen Sie, ob zu jeder geöffneten Klammer eine geschlossene eingegeben wurde.",
+							(LPCWSTR)L"Fehler",
+							MB_ICONWARNING
+						);
+						break;
+					}
+					if (!validator.checkDerSyntax(functionBuffer)) {
+						MessageBox(
+							NULL,
+							(LPCWSTR)L"Syntax Fehler! Prüfen Sie, ob der Ausdruck eine korrekte Syntax hat.",
+							(LPCWSTR)L"Fehler",
+							MB_ICONWARNING
+						);
+						break;
+					}
+					
 					lockSyntaxbaum.lock();
 					if (gwtstat != 0) {
 						/*rechnerLibrary.setFunctionBuffer(functionBuffer);
@@ -1465,12 +1598,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 						// x^3*((x^3+2)+4*x^3) 
 						// ((x^3+2)+4*x^3)*3*x
 						polstellenPunkteBerechnenErledigt = false;
-						rechnerLibrary.splitFuntionBufferGebrochenRational(baumGebrochenRational, functionBuffer);						
+						rechnerLibrary.splitFuntionBufferGebrochenRational(baumGebrochenRational, functionBuffer);
 						rechnerLibrary.setSyntaxbaum(baumGebrochenRational);
 						FunktionAlsVektorSyntaxbaum gekuerzterBaum = baumGebrochenRational;
 						rechnerLibrary.kuerzeSyntaxbaumGebrochenRational(&gekuerzterBaum);
 						rechnerLibrary.setSyntaxbaumGekuerzt(gekuerzterBaum);
 					}
+					
 					lockSyntaxbaum.unlock();
 					SetWindowText(hNullstellenEditField, L"?");
 					SetWindowText(hPolstellenEditField, L"?");
@@ -1537,6 +1671,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 					zweiteAbleitungZeichnen = true;
 				}
 				break;
+			case buttonCheckboxDritteAbleitung:
+				checkboxChecked = IsDlgButtonChecked(hWnd, buttonCheckboxDritteAbleitung);
+				if (checkboxChecked) {
+					CheckDlgButton(hWnd, buttonCheckboxDritteAbleitung, BST_UNCHECKED);
+					dritteAbleitungZeichnen = false;
+				}
+				else {
+					CheckDlgButton(hWnd, buttonCheckboxDritteAbleitung, BST_CHECKED);
+					dritteAbleitungZeichnen = true;
+				}
+				break;
 			case buttonCheckboxkruemmungsradius:
 				checkboxChecked = IsDlgButtonChecked(hWnd, buttonCheckboxkruemmungsradius);
 				if (checkboxChecked) {
@@ -1548,6 +1693,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam){
 					kruemmungsradiusZeichnen = true;
 				}
 				break;
+
 			case buttonMaximaMinimaPressed:
 				rechnerLibrary.extremstellenBerechnenGebrochenRational();
 				break;

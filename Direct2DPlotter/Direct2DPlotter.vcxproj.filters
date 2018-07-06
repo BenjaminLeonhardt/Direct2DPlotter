@@ -54,6 +54,9 @@
     <ClInclude Include="Validator.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="Funktion.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -84,6 +87,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="Validator.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="Funktion.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

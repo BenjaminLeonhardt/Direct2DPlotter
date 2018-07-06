@@ -100,7 +100,7 @@ double RechnerLibrary::f(double x, vector<double> *funktion) {
 	}
 	return y;
 }
-
+ 
 double RechnerLibrary::getPunkt(double x, FunktionAlsVektorSyntaxbaum *funktion) {
 	double y1 = 0;
 	double y2 = 0;

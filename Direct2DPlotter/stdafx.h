@@ -24,6 +24,7 @@
 #include "Matrix.h"
 #include "FunktionSyntaxbaum.h"
 #include "FunktionAlsVektorSyntaxbaum.h"
+#include "Validator.h"
 
 #include "Graphics.h"
 #include "dreieck.h"

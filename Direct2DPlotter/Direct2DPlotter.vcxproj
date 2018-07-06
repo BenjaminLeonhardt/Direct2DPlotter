@@ -147,6 +147,7 @@
   <ItemGroup>
     <ClInclude Include="Direct2DPlotter.h" />
     <ClInclude Include="dreieck.h" />
+    <ClInclude Include="Funktion.h" />
     <ClInclude Include="FunktionAlsVektorSyntaxbaum.h" />
     <ClInclude Include="FunktionSyntaxbaum.h" />
     <ClInclude Include="Graphics.h" />
@@ -161,6 +162,7 @@
   <ItemGroup>
     <ClCompile Include="Direct2DPlotter.cpp" />
     <ClCompile Include="dreieck.cpp" />
+    <ClCompile Include="Funktion.cpp" />
     <ClCompile Include="FunktionAlsVektorSyntaxbaum.cpp" />
     <ClCompile Include="FunktionSyntaxbaum.cpp" />
     <ClCompile Include="Graphics.cpp" />
